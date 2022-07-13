@@ -22,7 +22,7 @@ namespace LordAshes
         // Plugin info
         public const string Name = "Custom Assets Library Plugin Integrated Extension";
         public const string Guid = "org.lordashes.plugins.customassetslibraryintegratedextension";
-        public const string Version = "1.2.0.0";
+        public const string Version = "1.3.0.0";
 
         // Public Enum
         public enum DiagnosticMode

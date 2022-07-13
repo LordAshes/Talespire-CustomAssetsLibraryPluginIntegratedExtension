@@ -17,7 +17,8 @@ namespace LordAshes
     {
         public static class Helpers
         {
-            public static Dictionary<string, Shader> shaderRefs = new Dictionary<string, Shader>();
+            public static Dictionary<string, string> shaderNames = new Dictionary<string, string>();
+            public static Dictionary<string, Shader> shaders = new Dictionary<string, Shader>();
 
             public static void SpawnPrevent()
             {
@@ -126,25 +127,25 @@ namespace LordAshes
                     {
                         if (!rends[r].material.shader.name.StartsWith("Taleweaver"))
                         {
-                            if (!shaders.ContainsKey(tags["PREFAB"] + ":" + rends[r].name + ":" + rends[r].material.name))
+                            if (!Helpers.shaderNames.ContainsKey(tags["PREFAB"] + ":" + rends[r].name + ":" + rends[r].material.name))
                             {
-                                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Saving '" + tags["PREFAB"] + "' has renderer '" + rends[r].name + "' with material '" + rends[r].material.name + "' with shader '" + rends[r].material.shader.name + "'"); }
-                                shaders.Add(tags["PREFAB"] + ":" + rends[r].name + ":" + rends[r].material.name, rends[r].material.shader.name);
+                                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Saving prefab '" + tags["PREFAB"] + "' renderer '" + rends[r].name + "' material '" + rends[r].material.name + "' shader '" + rends[r].material.shader.name + "'"); }
+                                Helpers.shaderNames.Add(tags["PREFAB"] + ":" + rends[r].name + ":" + rends[r].material.name, rends[r].material.shader.name);
                             }
-                            if (!Helpers.shaderRefs.ContainsKey(rends[r].material.shader.name))
+                            if (!Helpers.shaders.ContainsKey(rends[r].material.shader.name))
                             {
                                 if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Saving Shader '" + rends[r].material.shader.name + "' Reference"); }
-                                Helpers.shaderRefs.Add(rends[r].material.shader.name, rends[r].material.shader);
+                                Helpers.shaders.Add(rends[r].material.shader.name, rends[r].material.shader);
                             }
-
                         }
-                        applyShaderName = (shaderName!="") ? shaderName : (shaders.ContainsKey(tags["PREFAB"] + ":" + rends[r].name + ":" + rends[r].material.name) ? shaders[tags["PREFAB"] + ":" + rends[r].name + ":" + rends[r].material.name] : "Standard");
+                        applyShaderName = (shaderName!="") ? shaderName : (Helpers.shaderNames.ContainsKey(tags["PREFAB"] + ":" + rends[r].name + ":" + rends[r].material.name) ? Helpers.shaderNames[tags["PREFAB"] + ":" + rends[r].name + ":" + rends[r].material.name] : "Standard");
                         if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Changing mini '" + tags["PREFAB"] + "' renderer '" + rends[r].name + "' material '" + rends[r].material.name + "' from shader '" + rends[r].material.shader.name + "' to shader '" + applyShaderName + "'"); }
-                        if (!Helpers.shaderRefs.ContainsKey(applyShaderName))
+                        if (!Helpers.shaders.ContainsKey(applyShaderName))
                         {
-                            Helpers.shaderRefs.Add(applyShaderName, Shader.Find(applyShaderName));
+                            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Don't have shader '" + rends[r].material.shader.name + "' saved. Trying to get a reference."); }
+                            Helpers.shaders.Add(applyShaderName, Shader.Find(applyShaderName));
                         }
-                        asset.GetComponentsInChildren<Renderer>()[r].material.shader = Helpers.shaderRefs[applyShaderName];
+                        asset.GetComponentsInChildren<Renderer>()[r].material.shader = Helpers.shaders[applyShaderName];
                         if(applyShaderName!= rends[r].material.shader.name)
                         {
                             Debug.LogWarning("Custom Assets Library Plugin Integrated Extension: Unable to apply shader '" + applyShaderName + "'");

@@ -20,7 +20,6 @@ namespace LordAshes
         private static float heightBarLastPosition = 0.0f;
 
         private static StringComparer comparer = StringComparer.OrdinalIgnoreCase;
-        public static Dictionary<string, string> shaders = new Dictionary<string, string>(comparer);
 
         public static partial class Patches
         {
@@ -97,8 +96,13 @@ namespace LordAshes
                             Renderer[] rends = ((GameObject)obj).GetComponentsInChildren<Renderer>();
                             foreach (Renderer rend in rends)
                             {
-                                Debug.Log("Custom Assets Library Plugin Integrated Extension: Prefab '" + obj.name + "' has renderer '" + rend.name + "' with material '" + rend.material.name + "' with shader '" + rend.material.shader.name + "'");
-                                shaders.Add(obj.name + ":" + rend.name + ":" + rend.material.name, rend.material.shader.name);
+                                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Saving prefab '" + obj.name + "' renderer '" + rend.name + "' material '" + rend.material.name + "' shader '" + rend.material.shader.name + "'"); }
+                                Helpers.shaderNames.Add(obj.name + ":" + rend.name + ":" + rend.material.name, rend.material.shader.name);
+                                if(!Helpers.shaders.ContainsKey(rend.material.shader.name))
+                                {
+                                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Saving shader '" + rend.material.shader.name + "'"); }
+                                    Helpers.shaders.Add(rend.material.shader.name, rend.material.shader);
+                                }
                             }
                         }
                         catch (Exception) {; }
