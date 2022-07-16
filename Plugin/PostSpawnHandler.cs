@@ -82,7 +82,7 @@ namespace LordAshes
             if (asset != null)
             {
                 // Apply custom shader
-                Helpers.AdjustShader(asset, asset.IsExplicitlyHidden);
+                Helpers.ShowHide(asset, asset.IsExplicitlyHidden);
                 // Attach aura to selected mini
                 GameObject target = Utility.GetAssetLoader(LocalClient.SelectedCreatureId);
                 GameObject aura = Utility.GetAssetLoader(creatureData.CreatureId);
@@ -116,13 +116,6 @@ namespace LordAshes
             AssetDb.DbEntry databaseData = (AssetDb.DbEntry)inputs[1];
             Dictionary<string, string> tags = (Dictionary<string, string>)inputs[2];
             if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Post Spawn Handler: Processing Effect " + creatureData.CreatureId); }
-            CreatureBoardAsset asset = null;
-            CreaturePresenter.TryGetAsset(creatureData.CreatureId, out asset);
-            if (asset != null)
-            {
-                // Apply custom shader
-                Helpers.AdjustShader(asset, asset.IsExplicitlyHidden);
-            }
             yield return new WaitForSeconds(0.1f);
         }
 
@@ -140,14 +133,7 @@ namespace LordAshes
             CreatureDataV2 creatureData = (CreatureDataV2)inputs[0];
             AssetDb.DbEntry databaseData = (AssetDb.DbEntry)inputs[1];
             Dictionary<string, string> tags = (Dictionary<string, string>)inputs[2];
-            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Post Spawn Handler: Processing Filter " + creatureData.CreatureId); }
-            CreatureBoardAsset asset = null;
-            CreaturePresenter.TryGetAsset(creatureData.CreatureId, out asset);
-            if (asset != null)
-            {
-                // Apply custom shader
-                Helpers.AdjustShader(asset, asset.IsExplicitlyHidden);
-            }
+            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Post Spawn Handler: Processing Effect " + creatureData.CreatureId); }
             yield return new WaitForSeconds(0.1f);
         }
 

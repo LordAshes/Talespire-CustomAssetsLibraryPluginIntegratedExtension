@@ -58,7 +58,7 @@ namespace LordAshes
                     CreaturePresenter.TryGetAsset(creatureGuid, out asset);
                     if (asset != null)
                     {
-                        Helpers.AdjustShader(asset, hideState);
+                        Helpers.ShowHide(asset, hideState);
                     }
                     return true;
                 }
@@ -74,46 +74,13 @@ namespace LordAshes
                     {
                         heightBarLastPosition = height;
                         if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Height Bar Moving"); }
-                        _self.StartCoroutine(DelayedShaderApplication(height));
+                        _self.StartCoroutine(DelayedShowHide(height));
                     }
                     return true;
                 }
             }
 
-            [HarmonyPatch(typeof(UnityEngine.AssetBundle), "LoadFromFileAsync_Internal")]
-            public static class PatchLoadFromFileAsync_Internal
-            {
-                public static bool Prefix(string path, uint crc, ulong offset)
-                {
-                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Intercepted Load Of Asset Bundle '"+path+"'"); }
-                    AssetBundle assetBundle = FileAccessPlugin.AssetBundle.Load(path);
-                    UnityEngine.Object[] objects = assetBundle.LoadAllAssets();
-                    foreach(UnityEngine.Object obj in objects)
-                    {
-                        try
-                        {
-                            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Found Object '" + obj.name + "' of type '" + obj.GetType().ToString() + "'"); }
-                            Renderer[] rends = ((GameObject)obj).GetComponentsInChildren<Renderer>();
-                            foreach (Renderer rend in rends)
-                            {
-                                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Saving prefab '" + obj.name + "' renderer '" + rend.name + "' material '" + rend.material.name + "' shader '" + rend.material.shader.name + "'"); }
-                                Helpers.shaderNames.Add(obj.name + ":" + rend.name + ":" + rend.material.name, rend.material.shader.name);
-                                if(!Helpers.shaders.ContainsKey(rend.material.shader.name))
-                                {
-                                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Saving shader '" + rend.material.shader.name + "'"); }
-                                    Helpers.shaders.Add(rend.material.shader.name, rend.material.shader);
-                                }
-                            }
-                        }
-                        catch (Exception) {; }
-                    }
-                    for(int o=0; o<objects.Count(); o++) { GameObject.Destroy(objects.ElementAt(o)); }
-                    assetBundle.Unload(false);
-                    return true;
-                }
-            }
-
-            public static IEnumerator DelayedShaderApplication(float height)
+            public static IEnumerator DelayedShowHide(float height)
             {
                 NGuid refGuid = new NGuid(System.Guid.NewGuid());
                 heightBarStepId = refGuid;
@@ -123,7 +90,7 @@ namespace LordAshes
                     if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Syncing Show/Hide"); }
                     foreach (CreatureBoardAsset asset in CreaturePresenter.AllCreatureAssets)
                     {
-                        Helpers.AdjustShader(asset, asset.CorrectHeight > height);
+                        Helpers.ShowHide(asset, asset.CorrectHeight > height);
                     }
                 }
                 else

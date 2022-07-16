@@ -213,10 +213,10 @@ namespace LordAshes
                 }
                 foreach (SkinnedMeshRenderer mr in go.GetComponentsInChildren<SkinnedMeshRenderer>())
                 {
-                    UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Mesh Renderer '" + mr.name + "' uses material with shader '" + mr.material.shader.name + "'");
+                    UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Skinned Mesh Renderer '" + mr.name + "' uses material with shader '" + mr.material.shader.name + "'");
                     foreach (Material mat in mr.materials)
                     {
-                        UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Mesh Renderer '" + mr.name + "' has material with shader '" + mat.shader.name + "'");
+                        UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Skinned Mesh Renderer '" + mr.name + "' has material with shader '" + mat.shader.name + "'");
                     }
                 }
                 foreach (Transform trans in go.transform.Children())
