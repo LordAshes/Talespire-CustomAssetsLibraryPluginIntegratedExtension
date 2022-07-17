@@ -22,7 +22,7 @@ namespace LordAshes
         // Plugin info
         public const string Name = "Custom Assets Library Plugin Integrated Extension";
         public const string Guid = "org.lordashes.plugins.customassetslibraryintegratedextension";
-        public const string Version = "1.4.0.0";
+        public const string Version = "1.5.0.0";
 
         // Public Enum
         public enum DiagnosticMode
@@ -51,7 +51,7 @@ namespace LordAshes
         // Configuration
         private ConfigEntry<DiagnosticMode> diagnosticMode { get; set; }
 
-        public static ConfigEntry<float> heightBarShaderDelay { get; set; }
+        public static ConfigEntry<float> showHideUpdateDelay { get; set; }
 
         public static CustomAssetsLibraryPluginIntegratedExtention _self = null;
 
@@ -85,7 +85,7 @@ namespace LordAshes
 
             UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: "+this.GetType().AssemblyQualifiedName+" Active. Diagnostic Level = "+diagnosticMode.Value.ToString());
 
-            heightBarShaderDelay = Config.Bind("Settings", "Delay To Determine Height Bar Has Stopped Moving", 0.5f);
+            showHideUpdateDelay = Config.Bind("Settings", "Delay After Spawn To Update Non-TS Shader Content", 3.0f);
 
             for (int t=0; t<keyboardHandlers.Count; t++)
             {
@@ -136,7 +136,7 @@ namespace LordAshes
                                     if (asset.HasDroppedIn)
                                     {
                                         // Asset had loaded
-                                        if (Utility.GetAssetLoader(Patches.spawnList[spawnId].CreatureId) != null)
+                                        // if (Utility.GetAssetLoader(Patches.spawnList[spawnId].CreatureId) != null)
                                         {
                                             try
                                             {

@@ -1,6 +1,7 @@
 ﻿using BepInEx;
 using Bounce.Singletons;
 using Bounce.Unmanaged;
+using DataModel;
 using HarmonyLib;
 using Newtonsoft.Json;
 using System;
@@ -16,11 +17,6 @@ namespace LordAshes
 {
     public partial class CustomAssetsLibraryPluginIntegratedExtention : BaseUnityPlugin
     {
-        private static NGuid heightBarStepId = NGuid.Empty;
-        private static float heightBarLastPosition = 0.0f;
-
-        private static StringComparer comparer = StringComparer.OrdinalIgnoreCase;
-
         public static partial class Patches
         {
             public static List<CreatureBoardAsset> spawnList = new List<CreatureBoardAsset>();
@@ -48,54 +44,13 @@ namespace LordAshes
                 }
             }
 
-            [HarmonyPatch(typeof(CreatureManager), "SetCreatureExplicitHideState")]
-            public static class PatchSetCreatureExplicitHideState
+            [HarmonyPatch(typeof(CreatureBoardAsset), "OnVisibilityChanged")]
+            public static class PatchOnVisibilityChanged
             {
-                public static bool Prefix(CreatureGuid creatureGuid, bool hideState)
+                public static void Postfix(ref CreatureBoardAsset __instance)
                 {
-                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Sync Shader Due To SetCreatureExplicitHideState"); }
-                    CreatureBoardAsset asset;
-                    CreaturePresenter.TryGetAsset(creatureGuid, out asset);
-                    if (asset != null)
-                    {
-                        Helpers.ShowHide(asset, hideState);
-                    }
-                    return true;
-                }
-            }
-
-            [HarmonyPatch(typeof(HeightHidePlane), "SetHeight")]
-            public static class PatchSetHeight
-            {
-                public static bool Prefix(float height, bool transition = false)
-                {
-                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Height=" + height + ", LastHeight=" + heightBarLastPosition); }
-                    if (height != heightBarLastPosition)
-                    {
-                        heightBarLastPosition = height;
-                        if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Height Bar Moving"); }
-                        _self.StartCoroutine(DelayedShowHide(height));
-                    }
-                    return true;
-                }
-            }
-
-            public static IEnumerator DelayedShowHide(float height)
-            {
-                NGuid refGuid = new NGuid(System.Guid.NewGuid());
-                heightBarStepId = refGuid;
-                yield return new WaitForSeconds(CustomAssetsLibraryPluginIntegratedExtention.heightBarShaderDelay.Value);
-                if (heightBarStepId == refGuid)
-                {
-                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Syncing Show/Hide"); }
-                    foreach (CreatureBoardAsset asset in CreaturePresenter.AllCreatureAssets)
-                    {
-                        Helpers.ShowHide(asset, asset.CorrectHeight > height);
-                    }
-                }
-                else
-                {
-                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Still Moving. Doing Nothing."); }
+                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Synchronizing The Hide State For Non-TS Shader Content On Creature '"+__instance.Name+"'"); }
+                    CustomAssetsLibraryPluginIntegratedExtention._self.StartCoroutine(Helpers.ShowHide(__instance));
                 }
             }
         }

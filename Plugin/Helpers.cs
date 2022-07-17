@@ -1,5 +1,6 @@
 ﻿using BepInEx;
 using Bounce.Unmanaged;
+using DataModel;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -56,23 +57,32 @@ namespace LordAshes
                 });
             }
 
-            public static void ShowHide(CreatureBoardAsset __instance, bool hidden)
+            public static IEnumerator ShowHide(CreatureBoardAsset __instance, float pause = 0.1f)
             {
-                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: "+(hidden?"Hiding":"Showing Asset")); }
-                // Get Asset Info
-                CreatureBoardAsset asset = null;
-                CreaturePresenter.TryGetAsset(__instance.CreatureId, out asset);
-                if (asset == null) { return; }
-                AssetDb.DbEntry assetInfo = null;
-                AssetDb.TryGetIndexData(asset.BoardAssetId, out assetInfo);
-                if (assetInfo == null) { return; }
-                Renderer[] renderers = asset.GetComponentsInChildren<Renderer>();
-                foreach(Renderer renderer in renderers)
+                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Hide/Show Update"); }
+                yield return new WaitForSeconds(pause);
+                if (__instance != null)
                 {
-                    if(!renderer.material.shader.name.StartsWith("Taleweaver"))
+                    bool visible = true;
+                    ShaderStateRef shader = default(ShaderStateRef);
+                    __instance.TryGetShaderState(out shader);
+                    if (__instance.IsExplicitlyHidden) { visible = false; }
+                    if (shader.State.IsCreatureHiddenByVolume) { visible = false; }
+                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: IsHidden = " + __instance.IsExplicitlyHidden + " And IsVisible = " + shader.State.IsCreatureHiddenByVolume + " -> Show = " + visible); }
+                    Renderer[] renderers = __instance.GetComponentsInChildren<Renderer>();
+                    foreach (Renderer renderer in renderers)
                     {
-                        renderer.enabled = !hidden;
+                        if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Creature '" + __instance.Name + "' has " + renderer.GetType().ToString() + " '" + renderer.name + "' material '" + renderer.material.name + "' shader '" + renderer.material.shader.name + "'"); }
+                        if (!renderer.material.shader.name.StartsWith("Taleweaver"))
+                        {
+                            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Setting Creature '" + __instance.Name + "' has " + renderer.GetType().ToString() + " '" + renderer.name + "' Enabled = " + visible); }
+                            renderer.enabled = visible;
+                        }
                     }
+                }
+                else
+                {
+                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Instance In Null"); }
                 }
             }
 

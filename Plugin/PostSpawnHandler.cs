@@ -81,8 +81,6 @@ namespace LordAshes
             CreaturePresenter.TryGetAsset(creatureData.CreatureId, out asset);
             if (asset != null)
             {
-                // Apply custom shader
-                Helpers.ShowHide(asset, asset.IsExplicitlyHidden);
                 // Attach aura to selected mini
                 GameObject target = Utility.GetAssetLoader(LocalClient.SelectedCreatureId);
                 GameObject aura = Utility.GetAssetLoader(creatureData.CreatureId);
@@ -98,7 +96,6 @@ namespace LordAshes
                 }
             }
             yield return new WaitForSeconds(0.1f);
-
         }
 
         public IEnumerator PostSpawnCreatureHandler(object[] inputs)
@@ -108,6 +105,12 @@ namespace LordAshes
             Dictionary<string, string> tags = (Dictionary<string, string>)inputs[2];
             if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Post Spawn Handler: Processing Creature " + creatureData.CreatureId); }
             yield return new WaitForSeconds(0.1f);
+            CreatureBoardAsset asset = null;
+            CreaturePresenter.TryGetAsset(creatureData.CreatureId, out asset);
+            if (asset != null)
+            {
+                CustomAssetsLibraryPluginIntegratedExtention._self.StartCoroutine(Helpers.ShowHide(asset, CustomAssetsLibraryPluginIntegratedExtention.showHideUpdateDelay.Value));
+            }
         }
 
         public IEnumerator PostSpawnEffectHandler(object[] inputs)
@@ -117,6 +120,12 @@ namespace LordAshes
             Dictionary<string, string> tags = (Dictionary<string, string>)inputs[2];
             if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Post Spawn Handler: Processing Effect " + creatureData.CreatureId); }
             yield return new WaitForSeconds(0.1f);
+            CreatureBoardAsset asset = null;
+            CreaturePresenter.TryGetAsset(creatureData.CreatureId, out asset);
+            if (asset != null)
+            {
+                CustomAssetsLibraryPluginIntegratedExtention._self.StartCoroutine(Helpers.ShowHide(asset, CustomAssetsLibraryPluginIntegratedExtention.showHideUpdateDelay.Value));
+            }
         }
 
         public IEnumerator PostSpawnEncounterHandler(object[] inputs)

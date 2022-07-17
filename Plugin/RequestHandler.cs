@@ -156,9 +156,13 @@ namespace LordAshes
             {
                 try
                 {
-                    GameObject go = Utility.GetAssetLoader(cid);
-                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Analyzing Mini " + go.name);
-                    AnalyzeGameObject(go);
+                    CreatureBoardAsset asset = null;
+                    CreaturePresenter.TryGetAsset(cid, out asset);
+                    if (asset != null)
+                    {
+                        Debug.Log("Custom Assets Library Plugin Integrated Extension: Analyzing Mini " + asset.name);
+                        AnalyzeCreature(asset);
+                    }
                 }
                 catch (Exception x)
                 {
@@ -201,6 +205,16 @@ namespace LordAshes
 
             #region Request Helpers
 
+            private static void AnalyzeCreature(CreatureBoardAsset asset)
+            {
+                UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Object '" + asset.name + "' (Cid: "+asset.CreatureId+", Type: "+asset.BoardAssetId+")");
+                UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Object '" + asset.name + "' is "+(asset.IsExplicitlyHidden?"Hidden":"Visible"));
+                UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Object '" + asset.name + "' is " + (asset.IsFlying ? "Flying" : "Not Flying"));
+                UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Object '" + asset.name + "' is " + (asset.IsGrounded ? "Grounded" : "Not Grounded"));
+                UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Object '" + asset.name + "' is " + (asset.IsVisible ? "Visible" : "Not Visible"));
+                AnalyzeGameObject(Utility.GetAssetLoader(asset.CreatureId));
+            }
+
             private static void AnalyzeGameObject(GameObject go)
             {
                 foreach (MeshRenderer mr in go.GetComponentsInChildren<MeshRenderer>())
@@ -218,6 +232,10 @@ namespace LordAshes
                     {
                         UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Skinned Mesh Renderer '" + mr.name + "' has material with shader '" + mat.shader.name + "'");
                     }
+                }
+                foreach (Component component in go.GetComponentsInChildren<Component>())
+                {
+                    UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Component '" + component.name + "' (Type "+component.GetType().ToString()+")");
                 }
                 foreach (Transform trans in go.transform.Children())
                 {
