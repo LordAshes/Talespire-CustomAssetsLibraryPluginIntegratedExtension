@@ -27,7 +27,7 @@ namespace LordAshes
                 public static bool Prefix(UI_AssetBrowserSlotItem __instance, NGuid ____nGuid)
                 {
                     if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.low) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Library Selection Made (Asset Id " + ____nGuid + ")"); }
-                    return CustomAssetsLibraryPluginIntegratedExtention.PreSpawnHandlerRouter(____nGuid, AssetDb.GetIndexData(____nGuid));
+                    return CustomAssetsLibraryPluginIntegratedExtention.PreSpawnHandlerRouter(____nGuid, AssetDb.GetIndexData(new BoardAssetGuid(____nGuid)));
                 }
             }
 
