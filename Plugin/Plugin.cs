@@ -15,14 +15,14 @@ namespace LordAshes
 {
     [BepInPlugin(Guid, Name, Version)]
     [BepInDependency(LordAshes.FileAccessPlugin.Guid, BepInDependency.DependencyFlags.HardDependency)]
-    [BepInDependency(CustomAssetsLibrary.CustomAssetLib.Guid, BepInDependency.DependencyFlags.HardDependency)]
+    // [BepInDependency(CustomAssetsLibrary.CustomAssetLib.Guid, BepInDependency.DependencyFlags.HardDependency)]
     [BepInDependency("org.lordashes.plugins.assetdata", BepInDependency.DependencyFlags.SoftDependency)]
     public partial class CustomAssetsLibraryPluginIntegratedExtention : BaseUnityPlugin
     {
         // Plugin info
         public const string Name = "Custom Assets Library Plugin Integrated Extension";
         public const string Guid = "org.lordashes.plugins.customassetslibraryintegratedextension";
-        public const string Version = "1.5.0.0";
+        public const string Version = "1.8.0.0";
 
         // Public Enum
         public enum DiagnosticMode
@@ -70,9 +70,16 @@ namespace LordAshes
             {"Play Animaton 05", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.Alpha5, KeyCode.LeftControl), handlerMethod = "Animate", handlerParameter = 5 } },
             {"Play Animaton 06", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.Alpha6, KeyCode.LeftControl), handlerMethod = "Animate", handlerParameter = 6 } },
             {"Play Animaton 07", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.Alpha7, KeyCode.LeftControl), handlerMethod = "Animate", handlerParameter = 7 } },
-            {"Play Animaton By Name", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.Alpha8, KeyCode.LeftControl), handlerMethod = "Animate", handlerParameter = 0 } },
+            {"Apply Blend Shape 01", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.Alpha1, KeyCode.LeftAlt), handlerMethod = "BlendShape", handlerParameter = 1 } },
+            {"Apply Blend Shape 02", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.Alpha2, KeyCode.LeftAlt), handlerMethod = "BlendShape", handlerParameter = 2 } },
+            {"Apply Blend Shape 03", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.Alpha3, KeyCode.LeftAlt), handlerMethod = "BlendShape", handlerParameter = 3 } },
+            {"Apply Blend Shape 04", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.Alpha4, KeyCode.LeftAlt), handlerMethod = "BlendShape", handlerParameter = 4 } },
+            {"Apply Blend Shape 05", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.Alpha5, KeyCode.LeftAlt), handlerMethod = "BlendShape", handlerParameter = 5 } },
+            {"Apply Blend Shape 06", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.Alpha6, KeyCode.LeftAlt), handlerMethod = "BlendShape", handlerParameter = 6 } },
+            {"Apply Blend Shape 07", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.Alpha7, KeyCode.LeftAlt), handlerMethod = "BlendShape", handlerParameter = 7 } },
             {"Play Audio", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.Alpha9, KeyCode.LeftControl), handlerMethod = "Audio", handlerParameter = -1 } },
             {"Stop All", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.Alpha0, KeyCode.LeftControl), handlerMethod = "Stop", handlerParameter = -1 } },
+            {"Stop All (Alternate)", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.Alpha0, KeyCode.LeftAlt), handlerMethod = "Stop", handlerParameter = -1 } },
             {"Paste Multi-Slab", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.S, KeyCode.LeftControl), handlerMethod = "BuildSlabs", handlerParameter = -1, alwaysLocal = true } },
             {"Analyze Game Object", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.A, KeyCode.RightControl), handlerMethod = "Analyze", handlerParameter = -1, alwaysLocal = true } },
         };
@@ -116,7 +123,7 @@ namespace LordAshes
                 if (Utility.isBoardLoaded())
                 {
                     // Board is loaded
-                    if (CustomAssetsLibrary.Patches.AssetDbOnSetupInternalsPatch.HasSetup)
+                    // if (CustomAssetsLibrary.Patches.AssetDbOnSetupInternalsPatch.HasSetup)
                     {
                         if (Patches.spawnList.Count > 0)
                         {
@@ -159,6 +166,8 @@ namespace LordAshes
                         }
                     }
 
+                    RequestHandler.UpdateBlendShape();
+
                     foreach (KeyboardHandler handler in keyboardHandlers.Values)
                     {
                         if (Utility.StrictKeyCheck(handler.trigger))
@@ -181,6 +190,31 @@ namespace LordAshes
                 if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra)
                 {
                     if (Patches.spawnList.Count > 0) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Backlog Entries = " + Patches.spawnList.Count+" @ Try "+tryCount); }
+                }
+
+                if(Input.GetKeyDown(KeyCode.N))
+                {
+                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Seeking The Link");
+                    GameObject[] objs = (GameObject[])Resources.FindObjectsOfTypeAll(typeof(GameObject));
+                    foreach(GameObject obj in objs)
+                    {
+                        if(obj.name=="MainLight")
+                        {
+                            Debug.Log("Custom Assets Library Plugin Integrated Extension: Found Main Light");
+                            try
+                            {
+                                Debug.Log("Custom Assets Library Plugin Integrated Extension: Pre Color = " + obj.GetComponent<Light>().color.r + "," + obj.GetComponent<Light>().color.g + "," + obj.GetComponent<Light>().color.b);
+                                obj.GetComponent<Light>().color = new Color(1.0f, 0.0f, 0.0f);
+                                Debug.Log("Custom Assets Library Plugin Integrated Extension: Post Color = " + obj.GetComponent<Light>().color.r + "," + obj.GetComponent<Light>().color.g + "," + obj.GetComponent<Light>().color.b);
+                            }
+                            catch(Exception x)
+                            {
+                                Debug.Log("Exception Setting Light");
+                                Debug.LogException(x);
+                            }
+                            break;
+                        }
+                    }
                 }
             }
         }

@@ -99,19 +99,14 @@ namespace LordAshes
                 CreaturePresenter.TryGetAsset(cid, out asset);
                 if (asset != null)
                 {
-                    Transform _base = null;
-                    StartWith(asset, "_base", ref _base);
-                    Transform baseLoader = null;
-                    Traverse(_base, "BaseLoader", ref baseLoader);
-                    if (baseLoader != null)
+                    Type cba = typeof(CreatureBoardAsset);
+                    foreach (FieldInfo fi in cba.GetRuntimeFields())
                     {
-                        Debug.Log("Custom Assets Library Plugin Integrated Extension:  Base Loader '"+ baseLoader.GetChild(0).name+ "' Found");
-                        return baseLoader.GetChild(0).gameObject;
-                    }
-                    else
-                    {
-                        Debug.LogWarning("Custom Assets Library Plugin Integrated Extension: Could Not Find Base Loader");
-                        return null;
+                        if (fi.Name == "_base")
+                        {
+                            CreatureBase obj = (CreatureBase)fi.GetValue(asset);
+                            return obj.transform.GetChild(0).gameObject;
+                        }
                     }
                 }
                 return null;
@@ -128,53 +123,40 @@ namespace LordAshes
                 CreaturePresenter.TryGetAsset(cid, out asset);
                 if (asset != null)
                 {
-                    Transform _creatureRoot = null;
-                    StartWith(asset, "_creatureRoot", ref _creatureRoot);
-                    Transform assetLoader = null;
-                    Traverse(_creatureRoot, "AssetLoader", ref assetLoader);
-                    if (assetLoader != null)
+                    string blockName = (asset.Name != null) ? asset.Name : ((asset.name != null) ? asset.name : "(Unknown)");
+                    // if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: GetAssetLoader is searching " + Utility.GetCreatureName(blockName) + " hierarchy..."); }
+                    Type cba = typeof(CreatureBoardAsset);
+                    foreach (FieldInfo fi in cba.GetRuntimeFields())
                     {
-                        Debug.Log("Custom Assets Library Plugin Integrated Extension:  Asset Loader '" + assetLoader.GetChild(0).name+"' Found");
-                        return assetLoader.GetChild(0).gameObject;
-                    }
-                    else
-                    {
-                        Debug.LogWarning("Custom Assets Library Plugin Integrated Extension: Could Not Find Asset Loader");
-                        return null;
+                        // Find hierarchy starting point
+                        if (fi.Name == "_creatureRoot")
+                        {
+                            Transform obj = (Transform)fi.GetValue(asset);
+                            // Look for each step in the hierarchy
+                            foreach (string step in new string[] { "CreatureMorph(Clone)", "AssetLoader" })
+                            {
+                                bool found = false;
+                                for (int c = 0; c < obj.childCount; c++)
+                                {
+                                    // if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Found '"+obj.GetChild(c).name+"' while seeking step '"+step+"'"); }
+                                    if ((obj.GetChild(c).name == step) || (step == "")) { obj = obj.GetChild(c); found = true; break; }
+                                }
+                                // Current step was not found, return null
+                                if (found == false) 
+                                {
+                                    // if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: GetAssetLoader didn't find '"+step+"' in " + Utility.GetCreatureName(blockName) + " hierarchy..."); }
+                                    return null; 
+                                }
+                            }
+                            // All steps were found, return corresponding game object
+                            if (obj.childCount > 0)
+                            {
+                                return obj.GetChild(0).gameObject;
+                            }
+                        }
                     }
                 }
                 return null;
-            }
-
-            public static void StartWith(CreatureBoardAsset asset, string seek, ref Transform match)
-            {
-                Type type = typeof(CreatureBoardAsset);
-                match = null;
-                foreach (FieldInfo fi in type.GetRuntimeFields())
-                {
-                    if (fi.Name == seek) { match = (Transform)fi.GetValue(asset); break; }
-                }
-                /*
-                if (match != null)
-                {
-                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Found '"+seek+ "' On Asset " + Utility.GetCreatureName(asset.Name));
-                }
-                else
-                {
-                    Debug.LogWarning("Custom Assets Library Plugin Integrated Extension: Could Not Find '"+seek+"' On Asset "+Utility.GetCreatureName(asset.Name));
-                }
-                */
-            }
-
-            public static void Traverse(Transform root, string seek, ref Transform match)
-            {
-                // Debug.Log("Seeking Child Named '" + seek + "'. Found '" + root.name + "'");
-                if (match != null) { return; }
-                if (root.name == seek) { match = root; return; }
-                foreach (Transform child in root.Children())
-                {
-                    Traverse(child, seek, ref match);
-                }
             }
 
             public static string GetCreatureName(string nameBlock)

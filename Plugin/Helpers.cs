@@ -1,6 +1,7 @@
 ﻿using BepInEx;
 using Bounce.Unmanaged;
 using DataModel;
+using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -33,7 +34,8 @@ namespace LordAshes
                 Debug.Log("Custom Assets Library Plugin Integrated Extension: SpawnResult=" + Convert.ToString(CreatureManager.TryCreateAndAddNewCreature(creatureData, creatureData.Position, new Unity.Mathematics.quaternion(q.x, q.y, q.z, q.w), creatureData.Flying, creatureData.ExplicitlyHidden, false)));
 
                 if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Registering mini for saving"); }
-                BuildingBoardTool.RecordInBuildHistory(creatureData.GetActiveBoardAssetId());
+                // BuildingBoardTool.RecordInBuildHistory(creatureData.GetActiveBoardAssetId());
+                BuildingBoardTool.RecordInBuildHistory(creatureData.GetActiveBoardAssetId().Value);
 
                 return creatureData.CreatureId;
             }
@@ -49,7 +51,8 @@ namespace LordAshes
                 Helpers.SpawnCreature(new CreatureDataV2()
                 {
                     CreatureId = new CreatureGuid(new Bounce.Unmanaged.NGuid(System.Guid.NewGuid())),
-                    BoardAssetIds = new NGuid[] { nguid },
+                    // BoardAssetIds = new NGuid[] { nguid },
+                    BoardAssetIds = new BoardAssetGuid[] { new BoardAssetGuid(nguid) },
                     Position = spawnPos,
                     Rotation = Bounce.Mathematics.bam3.FromEulerDegrees(spawnRot.eulerAngles),
                     ExplicitlyHidden = false,
@@ -68,7 +71,8 @@ namespace LordAshes
                     __instance.TryGetShaderState(out shader);
                     if (__instance.IsExplicitlyHidden) { visible = false; }
                     if (shader.State.IsCreatureHiddenByVolume) { visible = false; }
-                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: IsHidden = " + __instance.IsExplicitlyHidden + " And IsVisible = " + shader.State.IsCreatureHiddenByVolume + " -> Show = " + visible); }
+                    if (!__instance.IsVisible) { visible = false; }
+                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Show = " + visible+" (Hide: "+ __instance.IsExplicitlyHidden+", HideVolume: "+ shader.State.IsCreatureHiddenByVolume+", HeightBar: "+!__instance.IsVisible+")"); }
                     Renderer[] renderers = __instance.GetComponentsInChildren<Renderer>();
                     foreach (Renderer renderer in renderers)
                     {
@@ -95,6 +99,42 @@ namespace LordAshes
                 if (Input.GetKey(KeyCode.LeftAlt)) { return "Audio"; }
                 if (Input.GetKey(KeyCode.RightAlt)) { return "Filter"; }
                 return kind;
+            }
+
+            // public static Dictionary<string, string> GetAssetTags(NGuid nguid)
+            public static Dictionary<string, string> GetAssetTags(BoardAssetGuid nguid)
+            {
+                AssetDb.DbEntry info;
+                AssetDb.TryGetIndexData(nguid, out info);
+                Dictionary<string, string> tags = new Dictionary<string, string>();
+                foreach (string tag in info.Tags)
+                {
+                    if (tag.Contains(":"))
+                    {
+                        tags.Add(tag.Substring(0, tag.IndexOf(":")), tag.Substring(tag.IndexOf(":") + 1));
+                    }
+                    else
+                    {
+                        tags.Add(tag, tag);
+                    }
+                }
+                return tags;
+            }
+
+            // public static Dictionary<string, object> GetAssetInfo(NGuid nguid)
+            public static Dictionary<string, object> GetAssetInfo(BoardAssetGuid nguid)
+            {
+                string prefabName = GetAssetTags(nguid)["Prefab"];
+                Dictionary<string,object> info = null;
+                foreach (AssetBundle ab in AssetBundle.GetAllLoadedAssetBundles())
+                {
+                    if (ab.name == prefabName)
+                    {
+                        string json = ab.LoadAsset<TextAsset>("Info.txt").text;
+                        info = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
+                    }
+                }
+                return info;
             }
         }
     }

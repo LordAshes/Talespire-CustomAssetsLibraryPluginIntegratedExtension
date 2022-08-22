@@ -67,7 +67,7 @@ namespace LordAshes
             CreatureDataV2 creatureData = (CreatureDataV2)inputs[0];
             AssetDb.DbEntry databaseData = (AssetDb.DbEntry)inputs[1];
             Dictionary<string, string> tags = (Dictionary<string, string>)inputs[2];
-            RequestHandler.Audio(creatureData.CreatureId, 1);
+            RequestHandler.ApplyAudio(creatureData.CreatureId, 1);
             yield return new WaitForSeconds(0.1f);
         }
 
