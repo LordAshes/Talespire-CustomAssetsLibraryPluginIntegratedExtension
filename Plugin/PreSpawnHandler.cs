@@ -41,7 +41,7 @@ namespace LordAshes
         {
             if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Pre Spawn Handler: Processing Aura Of Type " + nguid.ToString()); }
             Helpers.SpawnPrevent();
-            _self.StartCoroutine(Helpers.SpawnCreatureByNGuid(nguid));
+            Helpers.SpawnCreatureByNGuid(nguid);
             return false;
         }
 
@@ -69,7 +69,7 @@ namespace LordAshes
         {
             if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Pre Spawn Handler: Processing Filter Of Type " + nguid.ToString()); }
             Helpers.SpawnPrevent();
-            _self.StartCoroutine(Helpers.SpawnCreatureByNGuid(nguid));
+            Helpers.SpawnCreatureByNGuid(nguid);
             return false;
         }
 
@@ -105,7 +105,7 @@ namespace LordAshes
         {
             if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Pre Spawn Handler: Processing Transform Of Type " + nguid.ToString()); }
             Helpers.SpawnPrevent();
-            _self.StartCoroutine(Helpers.SpawnCreatureByNGuid(nguid));
+            Helpers.SpawnCreatureByNGuid(nguid);
             return false;
         }
 

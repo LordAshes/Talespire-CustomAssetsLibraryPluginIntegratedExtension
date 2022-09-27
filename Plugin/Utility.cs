@@ -99,18 +99,16 @@ namespace LordAshes
                 CreaturePresenter.TryGetAsset(cid, out asset);
                 if (asset != null)
                 {
-                    Transform _base = null;
-                    StartWith(asset, "_base", ref _base);
+                    CreatureBase _base = null;
+                    StartWith<CreatureBase>(asset, "_base", ref _base);
                     Transform baseLoader = null;
-                    Traverse(_base, "BaseLoader", ref baseLoader);
+                    Traverse(_base.transform, "BaseLoader", ref baseLoader);
                     if (baseLoader != null)
                     {
-                        Debug.Log("Custom Assets Library Plugin Integrated Extension:  Base Loader '"+ baseLoader.GetChild(0).name+ "' Found");
                         return baseLoader.GetChild(0).gameObject;
                     }
                     else
                     {
-                        Debug.LogWarning("Custom Assets Library Plugin Integrated Extension: Could Not Find Base Loader");
                         return null;
                     }
                 }
@@ -134,36 +132,28 @@ namespace LordAshes
                     Traverse(_creatureRoot, "AssetLoader", ref assetLoader);
                     if (assetLoader != null)
                     {
-                        Debug.Log("Custom Assets Library Plugin Integrated Extension:  Asset Loader '" + assetLoader.GetChild(0).name+"' Found");
                         return assetLoader.GetChild(0).gameObject;
                     }
                     else
                     {
-                        Debug.LogWarning("Custom Assets Library Plugin Integrated Extension: Could Not Find Asset Loader");
                         return null;
                     }
                 }
                 return null;
             }
 
-            public static void StartWith(CreatureBoardAsset asset, string seek, ref Transform match)
+            public static void StartWith<T>(CreatureBoardAsset asset, string seek, ref T match)
             {
                 Type type = typeof(CreatureBoardAsset);
-                match = null;
+                match = default(T);
                 foreach (FieldInfo fi in type.GetRuntimeFields())
                 {
-                    if (fi.Name == seek) { match = (Transform)fi.GetValue(asset); break; }
+                    if (fi.Name == seek)
+                    {
+                        match = (T)fi.GetValue(asset);
+                        break;
+                    }
                 }
-                /*
-                if (match != null)
-                {
-                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Found '"+seek+ "' On Asset " + Utility.GetCreatureName(asset.Name));
-                }
-                else
-                {
-                    Debug.LogWarning("Custom Assets Library Plugin Integrated Extension: Could Not Find '"+seek+"' On Asset "+Utility.GetCreatureName(asset.Name));
-                }
-                */
             }
 
             public static void Traverse(Transform root, string seek, ref Transform match)

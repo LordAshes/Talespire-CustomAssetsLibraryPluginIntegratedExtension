@@ -15,14 +15,13 @@ namespace LordAshes
 {
     [BepInPlugin(Guid, Name, Version)]
     [BepInDependency(LordAshes.FileAccessPlugin.Guid, BepInDependency.DependencyFlags.HardDependency)]
-    // [BepInDependency(CustomAssetsLibrary.CustomAssetLib.Guid, BepInDependency.DependencyFlags.HardDependency)]
     [BepInDependency("org.lordashes.plugins.assetdata", BepInDependency.DependencyFlags.SoftDependency)]
     public partial class CustomAssetsLibraryPluginIntegratedExtention : BaseUnityPlugin
     {
         // Plugin info
         public const string Name = "Custom Assets Library Plugin Integrated Extension";
         public const string Guid = "org.lordashes.plugins.customassetslibraryintegratedextension";
-        public const string Version = "1.8.0.0";
+        public const string Version = "2.0.0.0";
 
         // Public Enum
         public enum DiagnosticMode
@@ -143,7 +142,7 @@ namespace LordAshes
                                     if (asset.HasDroppedIn)
                                     {
                                         // Asset had loaded
-                                        // if (Utility.GetAssetLoader(Patches.spawnList[spawnId].CreatureId) != null)
+                                        if (Utility.GetAssetLoader(Patches.spawnList[spawnId].CreatureId) != null)
                                         {
                                             try
                                             {
@@ -190,31 +189,6 @@ namespace LordAshes
                 if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra)
                 {
                     if (Patches.spawnList.Count > 0) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Backlog Entries = " + Patches.spawnList.Count+" @ Try "+tryCount); }
-                }
-
-                if(Input.GetKeyDown(KeyCode.N))
-                {
-                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Seeking The Link");
-                    GameObject[] objs = (GameObject[])Resources.FindObjectsOfTypeAll(typeof(GameObject));
-                    foreach(GameObject obj in objs)
-                    {
-                        if(obj.name=="MainLight")
-                        {
-                            Debug.Log("Custom Assets Library Plugin Integrated Extension: Found Main Light");
-                            try
-                            {
-                                Debug.Log("Custom Assets Library Plugin Integrated Extension: Pre Color = " + obj.GetComponent<Light>().color.r + "," + obj.GetComponent<Light>().color.g + "," + obj.GetComponent<Light>().color.b);
-                                obj.GetComponent<Light>().color = new Color(1.0f, 0.0f, 0.0f);
-                                Debug.Log("Custom Assets Library Plugin Integrated Extension: Post Color = " + obj.GetComponent<Light>().color.r + "," + obj.GetComponent<Light>().color.g + "," + obj.GetComponent<Light>().color.b);
-                            }
-                            catch(Exception x)
-                            {
-                                Debug.Log("Exception Setting Light");
-                                Debug.LogException(x);
-                            }
-                            break;
-                        }
-                    }
                 }
             }
         }

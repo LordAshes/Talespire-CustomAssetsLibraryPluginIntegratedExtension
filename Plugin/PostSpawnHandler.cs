@@ -111,6 +111,22 @@ namespace LordAshes
             {
                 CustomAssetsLibraryPluginIntegratedExtention._self.StartCoroutine(Helpers.ShowHide(asset, CustomAssetsLibraryPluginIntegratedExtention.showHideUpdateDelay.Value));
             }
+            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Post Spawn Handler: Looking For Variants"); }
+            if (tags.ContainsKey("VARIANTS"))
+            {
+                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Post Spawn Handler: Variants Tag Is "+Convert.ToString(tags["VARIANTS"])); }
+                if (tags["VARIANTS"] != null && tags["VARIANTS"] != "")
+                {
+                    List<MapMenuCustom_MorphSelector.ElemData> morphs = new List<MapMenuCustom_MorphSelector.ElemData>();
+                    foreach (string stringId in tags["VARIANTS"].Split(new string[] { "|" }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Post Spawn Handler: Ading Moprh '"+stringId+"'"); }
+                        morphs.Add(new MapMenuCustom_MorphSelector.ElemData(new BoardAssetGuid(stringId), 1.0f));
+                    }
+                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Post Spawn Handler: Applying Moprhs List"); }
+                    CreatureManager.SendMorphListChanges(asset.CreatureId, morphs);
+                }
+            }
         }
 
         public IEnumerator PostSpawnEffectHandler(object[] inputs)
