@@ -1,4 +1,5 @@
 ﻿using BepInEx;
+using Bounce.ManagedCollections;
 using Bounce.Unmanaged;
 using DataModel;
 using Newtonsoft.Json;
@@ -17,48 +18,66 @@ namespace LordAshes
     {
 
         #region Remote Request Router
-        public static void RemoteRequestRouter(string action, string source, string key, string previous, string value)
+        // public static void RemoteRequestRouter(string action, string source, string key, string previous, string value)
+        public static void RemoteRequestRouter(AssetDataPlugin.DatumChange request)
         {
-            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.low) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Remote " + action + " Request For " + key + " (For " + source + ") " + previous + "->" + value); }
-            if (action != "invalid")
+            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.low) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Remote " + request.action.ToString() + " Request For " + request.key + " (For " + request.source + ") " + request.previous + "->" + request.value); }
+            request.key = request.key.Substring(CustomAssetsLibraryPluginIntegratedExtention.Guid.Length + 1);
+            request.key = request.key.ToLower() + "." + request.action.ToString().ToLower();
+            request.value = (request.value.ToString()+"@").Substring(0, (request.value.ToString()+"@").IndexOf("@"));
+            switch (request.key)
             {
-                key = key.Substring(CustomAssetsLibraryPluginIntegratedExtention.Guid.Length + 1);
-                key = key.ToLower() + "." + action.ToLower();
-                value = value.Substring(0, value.LastIndexOf("@"));
-                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Processing " + key + " -> " + value); }
-                switch (key)
-                {
-                    case "animate.add":
-                    case "animate.modify":
-                        RequestHandler.ApplyAnimate(new CreatureGuid(source), int.Parse(value));
-                        break;
-                    case "animate.remove":
-                        RequestHandler.ApplyAnimate(new CreatureGuid(source), -1);
-                        break;
-                    case "audio.add":
-                    case "audio.modify":
-                        RequestHandler.ApplyAudio(new CreatureGuid(source), 1);
-                        break;
-                    case "audio.remove":
-                        RequestHandler.ApplyAudio(new CreatureGuid(source), -1);
-                        break;
-                    case "stop.add":
-                    case "stop.modify":
-                    case "stop.remove":
-                        RequestHandler.ApplyAnimate(new CreatureGuid(source), -1);
-                        RequestHandler.ApplyAudio(new CreatureGuid(source), -1);
-                        RequestHandler.ApplyBlendShapeSequence(new CreatureGuid(source), -1);
-                        break;
-                    case "analyze.add":
-                    case "analyze.modify":
-                    case "anazyle.remove":
-                        RequestHandler.Analyze(new CreatureGuid(source), -1);
-                        break;
-                    case "blendshape.add":
-                    case "blendshape.modify":
-                        RequestHandler.ApplyBlendShapeSequence(new CreatureGuid(source), int.Parse(value));
-                        break;
-                }
+                case "animate.initial":
+                case "animate.add":
+                case "animate.modify":
+                    RequestHandler.ApplyAnimate(new CreatureGuid(request.source), request.value.ToString());
+                    break;
+                case "animate.remove":
+                    RequestHandler.ApplyAnimate(new CreatureGuid(request.source), "-1");
+                    break;
+                case "audio.initial":
+                case "audio.add":
+                case "audio.modify":
+                    RequestHandler.ApplyAudio(new CreatureGuid(request.source), 1);
+                    break;
+                case "audio.remove":
+                    RequestHandler.ApplyAudio(new CreatureGuid(request.source), -1);
+                    break;
+                case "aura.initial":
+                case "aura.add":
+                case "aura.modify":
+                    RequestHandler.ApplyAura(new CreatureGuid(request.source), new CreatureGuid(request.value.ToString()));
+                    break;
+                case "aura.remove":
+                    RequestHandler.RemoveAura(request.source, Convert.ToString(request.previous));
+                    break;
+                case "blendshape.initial":
+                case "blendshape.add":
+                case "blendshape.modify":
+                    RequestHandler.ApplyBlendShapeSequence(new CreatureGuid(request.source), int.Parse(request.value.ToString()));
+                    break;
+                case "filter.initial":
+                case "filter.add":
+                case "filter.modify":
+                    RequestHandler.ApplyFilter(new CreatureGuid(Convert.ToString(request.value)));
+                    break;
+                case "filter.remove":
+                    RequestHandler.RemoveFilter(new CreatureGuid(Convert.ToString(request.previous)));
+                    break;
+                case "stop.initial":
+                case "stop.add":
+                case "stop.modify":
+                case "stop.remove":
+                    RequestHandler.ApplyAnimate(new CreatureGuid(request.source), "-1");
+                    RequestHandler.ApplyAudio(new CreatureGuid(request.source), -1);
+                    RequestHandler.ApplyBlendShapeSequence(new CreatureGuid(request.source), -1);
+                    break;
+                case "analyze.initial":
+                case "analyze.add":
+                case "analyze.modify":
+                case "anazyle.remove":
+                    RequestHandler.Analyze(new CreatureGuid(request.source), -1);
+                    break;
             }
         }
 
@@ -105,7 +124,7 @@ namespace LordAshes
 
             private static List<BlendShapeApplication> blendShapesInProgress = new List<BlendShapeApplication>();
 
-            public static void ApplyAnimate(CreatureGuid cid, int selection)
+            public static void ApplyAnimate(CreatureGuid cid, string selection)
             {
                 try
                 {
@@ -115,12 +134,12 @@ namespace LordAshes
                         Animation anim = asset.GetComponentInChildren<Animation>();
                         if (anim != null)
                         {
-                            if (selection == -1)
+                            if (selection == "-1")
                             {
-                                Debug.Log("Custom Assets Library Plugin Integrated Extension: Stopping Animation On " + asset.name);
+                                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.low) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Stopping Animation On " + asset.name); }
                                 anim.Stop();
                             }
-                            else if (selection == 0)
+                            else if (selection == "0")
                             {
                                 SystemMessage.AskForTextInput("Animation", "Animation Name:", "OK", (animName) =>
                                 {
@@ -130,23 +149,29 @@ namespace LordAshes
                             }
                             else
                             {
-                                Debug.Log("Custom Assets Library Plugin Integrated Extension: Starting Animation '" + "Anim" + selection.ToString("d2") + "' On " + asset.name);
-                                anim.Play("Anim" + selection.ToString("d2"));
+                                int intSelection = 0;
+                                if (int.TryParse(selection, out intSelection))
+                                {
+                                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Looking Up Animation '" + selection + "' On " + asset.name); }
+                                    selection = GetAnimationName(anim, intSelection);
+                                }
+                                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.low) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Playing '" + selection + "' On " + asset.name); }
+                                anim.Play(selection);
                             }
                         }
                         else
                         {
-                            Debug.Log("Custom Assets Library Plugin Integrated Extension: Unable To Find Animation Component On Asset " + asset.name);
+                            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.LogWarning("Custom Assets Library Plugin Integrated Extension: Unable To Find Animation Component On Asset " + asset.name); }
                         }
                     }
                     else
                     {
-                        Debug.Log("Custom Assets Library Plugin Integrated Extension: No Selected Asset To Animate");
+                        if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.LogWarning("Custom Assets Library Plugin Integrated Extension: No Selected Asset To Animate"); }
                     }
                 }
                 catch (Exception x)
                 {
-                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Error Processing Animate " + selection + " On " + cid);
+                    Debug.LogError("Custom Assets Library Plugin Integrated Extension: Error Processing Animate " + selection + " On " + cid);
                     if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.LogWarning(x); }
                 }
             }
@@ -163,34 +188,84 @@ namespace LordAshes
                         {
                             if (selection == -1)
                             {
-                                Debug.Log("Custom Assets Library Plugin Integrated Extension: Stopping Audio On " + asset.name);
+                                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.low) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Stopping Audio On " + asset.name); }
                                 audio.Stop();
                             }
                             else
                             {
-                                Debug.Log("Custom Assets Library Plugin Integrated Extension: Starting Audio On " + asset.name);
+                                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.low) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Starting Audio On " + asset.name); }
                                 audio.Play();
                             }
                         }
                         else
                         {
-                            Debug.Log("Custom Assets Library Plugin Integrated Extension: Unable To Find AudioSource Component On Asset " + asset.name);
+                            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.low) { Debug.LogWarning("Custom Assets Library Plugin Integrated Extension: Unable To Find AudioSource Component On Asset " + asset.name); }
                         }
                     }
                     else
                     {
-                        Debug.Log("Custom Assets Library Plugin Integrated Extension: No Selected Asset For Audio Function");
+                        if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.low) { Debug.LogWarning("Custom Assets Library Plugin Integrated Extension: No Selected Asset For Audio Function"); }
                     }
                 }
                 catch (Exception x)
                 {
-                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Error Processing Audio " + selection + " On " + cid);
+                    Debug.LogError("Custom Assets Library Plugin Integrated Extension: Error Processing Audio " + selection + " On " + cid);
                     if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.LogWarning(x); }
+                }
+            }
+
+            public static void ApplyAura(CreatureGuid targetCid, CreatureGuid auraCid)
+            {
+                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.low) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Apply Aura " + auraCid); }
+                GameObject targetBase = Utility.GetBaseLoader(targetCid);
+                GameObject target = Utility.GetAssetLoader(targetCid);
+                GameObject auraBase = Utility.GetBaseLoader(auraCid);
+                GameObject aura = Utility.GetAssetLoader(auraCid);
+                auraBase.name = "CustomContent:Base:" + targetCid + ":" + auraCid;
+                aura.name = "CustomContent:Aura:" + targetCid + ":" + auraCid;
+                if (target != null && targetBase != null && aura != null && auraBase != null)
+                {
+                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Apply Aura: Syncing Aura Base Position"); }
+                    auraBase.transform.position = targetBase.transform.position;
+                    auraBase.transform.rotation = target.transform.rotation;
+                    auraBase.transform.SetParent(target.transform);
+                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Apply Aura: Syncing Aura Position"); }
+                    aura.transform.position = targetBase.transform.position;
+                    aura.transform.rotation = target.transform.rotation;
+                    aura.transform.SetParent(target.transform);
+                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Apply Aura: Removing Base"); }
+                    foreach (Renderer render in auraBase.GetComponentsInChildren<Renderer>())
+                    {
+                        render.enabled = false;
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("Custom Assets Library Plugin Integrated Extension: Apply Aura: Unable To Access Asset");
+                }
+            }
+
+            public static void RemoveAura(string identityCid, string auraCid)
+            {
+                if (auraCid.Contains("@")) { auraCid = auraCid.Substring(0, auraCid.IndexOf("@")); }
+                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.low) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Remove Aura "+auraCid+" From " + identityCid); }
+                CreatureBoardAsset aura = null;
+                CreaturePresenter.TryGetAsset(new CreatureGuid(auraCid), out aura);
+                if (aura != null)
+                {
+                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Removing Aura From Talespire History"); }
+                    aura.RequestDelete();
+                    foreach (string obj in new string[] { "CustomContent:Base:" + identityCid + ":" + auraCid, "CustomContent:Aura:" + identityCid + ":" + auraCid })
+                    {
+                        if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Removing Object '"+obj+"'"); }
+                        GameObject.Destroy(GameObject.Find(obj));
+                    }
                 }
             }
 
             public static void ApplyBlendShapeSequence(CreatureGuid cid, int selection)
             {
+                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.low) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Applying BlendShape Sequence "+selection+" On Creature " + cid); }
                 if (selection == -1)
                 {
                     blendShapesInProgress.Clear();
@@ -231,7 +306,7 @@ namespace LordAshes
             {
                 try
                 {
-                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Requesting Global Blend Shape " + req.blendShapeIndex + " From " + req.start + " To " + req.end + " By " + req.step + " (Style " + req.style.ToString() + ")"); }
+                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.low) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Requesting Global Blend Shape " + req.blendShapeIndex + " From " + req.start + " To " + req.end + " By " + req.step + " (Style " + req.style.ToString() + ")"); }
                     GameObject asset = Utility.GetAssetLoader(cid);
                     if (asset != null)
                     {
@@ -267,22 +342,22 @@ namespace LordAshes
                             }
                             catch (Exception)
                             {
-                                Debug.Log("Custom Assets Library Plugin Integrated Extension: Unable To Access Blend Shape " + req.blendShapeIndex);
+                                Debug.LogWarning("Custom Assets Library Plugin Integrated Extension: Unable To Access Blend Shape " + req.blendShapeIndex);
                             }
                         }
                         else
                         {
-                            Debug.Log("Custom Assets Library Plugin Integrated Extension: Unable To Find SkinnedMeshRenderer Component On Asset " + asset.name);
+                            Debug.LogWarning("Custom Assets Library Plugin Integrated Extension: Unable To Find SkinnedMeshRenderer Component On Asset " + asset.name);
                         }
                     }
                     else
                     {
-                        Debug.Log("Custom Assets Library Plugin Integrated Extension: No Selected Asset To Blend Shape");
+                        Debug.LogWarning("Custom Assets Library Plugin Integrated Extension: No Selected Asset To Blend Shape");
                     }
                 }
                 catch (Exception x)
                 {
-                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Error Processing Blend Shape " + req.blendShapeIndex + " On " + cid);
+                    Debug.LogError("Custom Assets Library Plugin Integrated Extension: Error Processing Blend Shape " + req.blendShapeIndex + " On " + cid);
                     if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.LogWarning(x); }
                 }
             }
@@ -326,9 +401,54 @@ namespace LordAshes
                 }
             }
 
-            public static void BuildSlabs(CreatureGuid notApplicable, int selection)
+            public static void ApplyFilter(CreatureGuid filterCid)
             {
-                Debug.Log("Custom Assets Library Plugin Integrated Extension: Paste Slab Or Multi-Slab Activated");
+                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.low) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Apply Filter " + filterCid); }
+                GameObject camera = ActiveCameraManager.ActiveCamera.gameObject;
+                GameObject filterAsset = Utility.GetAssetLoader(filterCid);
+                GameObject filterBase = Utility.GetBaseLoader(filterCid);
+                if (filterAsset != null)
+                {
+                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Apply Filter: Syncing Filter Position"); }
+                    filterAsset.transform.position = camera.transform.position;
+                    filterAsset.transform.rotation = camera.transform.rotation;
+                    filterAsset.transform.SetParent(camera.transform);
+                    filterBase.transform.position = camera.transform.position;
+                    filterBase.transform.rotation = camera.transform.rotation;
+                    filterBase.transform.SetParent(camera.transform);
+                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Apply Filter: Removing Base"); }
+                    foreach (Renderer render in filterBase.GetComponentsInChildren<Renderer>())
+                    {
+                        render.enabled = false;
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("Custom Assets Library Plugin Integrated Extension: Apply Filter: Unable To Access Filter");
+                }
+            }
+
+            public static void RemoveFilter(CreatureGuid filterCid)
+            {
+                Debug.Log("Custom Assets Library Plugin Integrated Extension: Remove Filter: Removing Current Camera Filter ("+ filterCid+")");
+                CreatureBoardAsset filter = null;
+                CreaturePresenter.TryGetAsset(filterCid, out filter);
+                if (filter != null)
+                {
+                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Remove Filter: Camera Filter Object ("+filter.Name+") Remove Requested");
+                    filter.RequestDelete();
+                }
+                else
+                {
+                    Debug.LogWarning("Custom Assets Library Plugin Integrated Extension: Remove Filter: Unable To Access Filter");
+                }
+            }
+
+            public static void BuildSlabs(CreatureGuid unused1, object unused2)
+            {
+                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.low) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Paste Slab Or Multi-Slab Activated"); }
+                string content = DirtyClipboardHelper.PullFromClipboard();
+                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Got:\r\n"+ content); }
                 _self.StartCoroutine(RequestHandler.BuildMultipleSlabs(DirtyClipboardHelper.PullFromClipboard(), 0.1f));
             }
 
@@ -357,26 +477,43 @@ namespace LordAshes
                 try
                 {
                     slabs = JsonConvert.DeserializeObject<List<Data.SlabInfo>>(slabCode);
-                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Content Looks Like Multi-Slab Data");
+                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high)
+                    {
+                        Debug.Log("Custom Assets Library Plugin Integrated Extension: Content Looks Like Multi-Slab Data With " + slabs.Count + " Parts");
+                    }
                 }
                 catch (Exception)
                 {
                     slabs = new List<Data.SlabInfo>() { new Data.SlabInfo() { position = new Unity.Mathematics.float3(0f, 0f, 0f), code = slabCode } };
-                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Content Looks Single-Slab Data");
+                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high)
+                    {
+                        Debug.Log("Custom Assets Library Plugin Integrated Extension: Content Looks Single-Slab Data With 1 Part");
+                    }
                 }
                 foreach (Data.SlabInfo slab in slabs)
                 {
+                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Processing Slab At "+Convert.ToString(slab.position)); }
+                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Processing Slab Code:\r\n" + slab.code); }
                     Copied copied = default(Copied);
                     if (BoardSessionManager.Board.PushStringToTsClipboard(slab.code, 0, slab.code.Length, out copied) == PushStringToTsClipboardResult.Success)
                     {
+                        if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Slab Code Loaded"); }
                         Copied mostRecentCopied_LocalOnly = BoardSessionManager.Board.GetMostRecentCopied_LocalOnly();
                         if (mostRecentCopied_LocalOnly != null)
                         {
-                            Debug.Log("Custom Assets Library Plugin Integrated Extension: Placing Slab. X:" + slab.position.x + " y:" + slab.position.x + " z:" + slab.position.z + " Slab: " + slab.code);
+                            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Placing Slab. X:" + slab.position.x + " y:" + slab.position.x + " z:" + slab.position.z + " Slab: " + slab.code); }
                             BoardSessionManager.Board.PasteCopied(slab.position, 0, 0UL);
-                            Debug.Log("Custom Assets Library Plugin Integrated Extension: Post Slab Placement Delay = " + delay);
+                            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Post Slab Placement Delay = " + delay); }
                             yield return new WaitForSeconds(delay);
                         }
+                        else
+                        {
+                            Debug.Log("Custom Assets Library Plugin Integrated Extension: Unable To Process Most Recent Copied");
+                        }
+                    }
+                    else
+                    {
+                        Debug.Log("Custom Assets Library Plugin Integrated Extension: Unable To Push Slab Code To TS Clipboard");
                     }
                 }
             }
@@ -387,45 +524,79 @@ namespace LordAshes
 
             private static void AnalyzeCreature(CreatureBoardAsset asset)
             {
-                UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Object '" + asset.name + "' (Cid: " + asset.CreatureId + ", Type: " + asset.BoardAssetId + ")");
-                UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Object '" + asset.name + "' is " + (asset.IsExplicitlyHidden ? "Hidden" : "Visible"));
-                UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Object '" + asset.name + "' is " + (asset.IsFlying ? "Flying" : "Not Flying"));
-                UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Object '" + asset.name + "' is " + (asset.IsGrounded ? "Grounded" : "Not Grounded"));
-                UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Object '" + asset.name + "' is " + (asset.IsVisible ? "Visible" : "Not Visible"));
-                AnalyzeGameObject(Utility.GetAssetLoader(asset.CreatureId));
+                UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Object '" + Utility.GetCreatureName(asset.Name) + "' (Cid: " + asset.CreatureId + ", Type: " + asset.BoardAssetId + ")");
+                UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Object '" + Utility.GetCreatureName(asset.Name) + "' is " + (asset.IsExplicitlyHidden ? "Hidden" : "Not Hidden"));
+                UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Object '" + Utility.GetCreatureName(asset.Name) + "' is " + (asset.IsFlying ? "Flying" : "Not Flying"));
+                UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Object '" + Utility.GetCreatureName(asset.Name) + "' is " + (asset.IsVisible ? "Visible" : "Not Visible"));
+                UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Object '" + Utility.GetCreatureName(asset.Name) + "' is " + (asset.ShaderStateRef.State.IsCreatureHiddenByVolume ? "In Hide Volume" : "Not In Hide Volume"));
+                UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Object '" + Utility.GetCreatureName(asset.Name) + "' is " + (asset.ShaderStateRef.State.InActiveLineOfSight ? "In LOS" : "Out Of LOS"));
+                UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Object '" + Utility.GetCreatureName(asset.Name) + "' JSON is " + asset.Name);
+                AnalyzeGameObject(Utility.GetAssetLoader(asset.CreatureId), 0);
             }
 
-            private static void AnalyzeGameObject(GameObject go)
+            private static void AnalyzeGameObject(GameObject go, int depth)
             {
-                foreach (MeshRenderer mr in go.GetComponentsInChildren<MeshRenderer>())
+                foreach (Renderer ren in go.GetComponentsInChildren<Renderer>())
                 {
-                    UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Mesh Renderer '" + mr.name + "' uses material with shader '" + mr.material.shader.name + "'");
-                    foreach (Material mat in mr.materials)
+                    UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Renderer '" + ren.name + "' uses material with shader '" + ren.material.shader.name + "'");
+                    foreach (Material mat in ren.materials)
                     {
-                        UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Mesh Renderer '" + mr.name + "' has material with shader '" + mat.shader.name + "'");
+                        UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: "+ren.GetType().ToString()+" Renderer '" + ren.name + "' has material with shader '" + mat.shader.name + "'");
                     }
                 }
-                foreach (SkinnedMeshRenderer mr in go.GetComponentsInChildren<SkinnedMeshRenderer>())
-                {
-                    UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Skinned Mesh Renderer '" + mr.name + "' uses material with shader '" + mr.material.shader.name + "'");
-                    foreach (Material mat in mr.materials)
-                    {
-                        UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Skinned Mesh Renderer '" + mr.name + "' has material with shader '" + mat.shader.name + "'");
-                    }
-                }
-                foreach (Component component in go.GetComponentsInChildren<Component>())
+                foreach (Component component in go.GetComponents<Component>())
                 {
                     UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Component '" + component.name + "' (Type " + component.GetType().ToString() + ")");
                 }
                 foreach (Transform trans in go.transform.Children())
                 {
-                    if (trans.gameObject != null)
+                    if (trans.gameObject != null && depth<5)
                     {
+                        UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Child @ Level "+depth);
+                        AnalyzeGameObject(trans.gameObject, depth+1);
                     }
-
-                    #endregion
                 }
             }
+
+            private static string GetAnimationName(Animation animation, int index)
+            {
+                string[] animNames = animationNames.Value.Split(',');
+                List<AnimationState> anims = new List<AnimationState>(animation.Cast<AnimationState>());
+                try
+                {
+                    // Try animation by names
+                    if (Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Trying Animation '"+ animNames[index - 1] + "'"); }
+                    foreach (AnimationState anim in anims)
+                    {
+                        if (anim.name == animNames[index - 1])
+                        {
+                            if (Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Loading Animation By State '"+ animNames[index - 1] + "'"); }
+                            return anim.name;
+                        }
+                    }
+                    // Try by default animation names
+                    for (int i = 0; i < animNames.Length; i++) { animNames[i] = "Anim" + (i + 1).ToString("00"); }
+                    if (Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Trying Animation '" + animNames[index - 1] + "'"); }
+                    foreach (AnimationState anim in anims)
+                    {
+                        if (anim.name == animNames[index - 1])
+                        {
+                            if (Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Loading Animation By Default Anim Name '" + animNames[index - 1] + "'"); }
+                            return anim.name;
+                        }
+                    }
+                    // Try by index
+                    if (Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Loading Animation By Index '" + index + "'"); }
+                    return anims[index - 1].name;
+                }
+                catch 
+                {
+                    Debug.LogWarning("Custom Assets Library Plugin Integrated Extension: Animation Selection Not Supported On This Asset"); 
+                    return anims[0].name;
+                }
+            }
+
+            #endregion
         }
     }
 }

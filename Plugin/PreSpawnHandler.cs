@@ -1,7 +1,10 @@
 ﻿using BepInEx;
 using Bounce.Unmanaged;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using UnityEngine;
 
 namespace LordAshes
@@ -22,9 +25,9 @@ namespace LordAshes
             }
             if (!tags.ContainsKey("KIND")) { tags.Add("KIND", "Creature"); }
             string kind = Helpers.ModifyKindBasedOnModifier(tags["KIND"]);
-            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Pre Spawn Router: Asset is kind "+tags["KIND"]+" being treated as "+kind); }
+            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Pre Spawn Router: Asset is kind " + tags["KIND"] + " being treated as " + kind); }
             // Trigger Remote Pre Spawn Callback
-            return (bool)typeof(CustomAssetsLibraryPluginIntegratedExtention).GetMethod("PreSpawn" + kind + "Handler").Invoke(null, new object[] { guid, entry, tags });            
+            return (bool)typeof(CustomAssetsLibraryPluginIntegratedExtention).GetMethod("PreSpawn" + kind + "Handler").Invoke(null, new object[] { guid, entry, tags });
         }
 
         #endregion
@@ -33,7 +36,7 @@ namespace LordAshes
 
         public static bool PreSpawnAudioHandler(NGuid nguid, AssetDb.DbEntry databaseData, Dictionary<string, string> tags)
         {
-            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Pre Spawn Handler: Processing Audio Of Type "+nguid.ToString()); }
+            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Pre Spawn Handler: Processing Audio Of Type " + nguid.ToString()); }
             return true;
         }
 
@@ -41,6 +44,14 @@ namespace LordAshes
         {
             if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Pre Spawn Handler: Processing Aura Of Type " + nguid.ToString()); }
             Helpers.SpawnPrevent();
+            string activeAura = AssetDataPlugin.ReadInfo(LocalClient.SelectedCreatureId.ToString(), CustomAssetsLibraryPluginIntegratedExtention.Guid + ".aura");
+            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Pre Spawn Handler: Aura Status = '"+activeAura+"'"); }
+            if (activeAura != null && activeAura != "")
+            {
+                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Pre Spawn Handler: Clearing Previous Aura"); }
+                string activeAuraId = activeAura.Substring(activeAura.IndexOf("@") + 1);
+                AssetDataPlugin.ClearInfo(LocalClient.SelectedCreatureId.ToString(), CustomAssetsLibraryPluginIntegratedExtention.Guid + ".aura");
+            }
             Helpers.SpawnCreatureByNGuid(nguid);
             return false;
         }
@@ -69,7 +80,21 @@ namespace LordAshes
         {
             if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Pre Spawn Handler: Processing Filter Of Type " + nguid.ToString()); }
             Helpers.SpawnPrevent();
-            Helpers.SpawnCreatureByNGuid(nguid);
+
+            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Pre Spawn Handler: Checking For Existing Camera Filter"); }
+            string previousFilter = AssetDataPlugin.ReadInfo(CreatureGuid.Empty.ToString(), CustomAssetsLibraryPluginIntegratedExtention.Guid + ".filter");
+
+            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Pre Spawn Handler: Requested NGuid '" + nguid+"', Previous NGuid '"+previousFilter+"'"); }
+            if (previousFilter != null && previousFilter !="" && previousFilter!=NGuid.Empty.ToString())
+            {
+                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Pre Spawn Handler: Clearing Previous Filter"); }
+                AssetDataPlugin.ClearInfo(CreatureGuid.Empty.ToString(), CustomAssetsLibraryPluginIntegratedExtention.Guid + ".filter");
+            }
+            else
+            {
+                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Pre Spawn Handler: Spawning Selected Filter"); }
+                Helpers.SpawnCreatureByNGuid(nguid);
+            }
             return false;
         }
 
@@ -85,7 +110,7 @@ namespace LordAshes
             Helpers.SpawnPrevent();
             string assetLocation = tags["ASSETBUNDLE"];
             AssetBundle assetBundle = null;
-            foreach(AssetBundle loadedAssetBundle in AssetBundle.GetAllLoadedAssetBundles())
+            foreach (AssetBundle loadedAssetBundle in AssetBundle.GetAllLoadedAssetBundles())
             {
                 if (loadedAssetBundle.GetAllAssetNames().Contains(System.IO.Path.GetFileNameWithoutExtension(assetLocation))) { assetBundle = loadedAssetBundle; }
             }

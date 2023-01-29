@@ -77,24 +77,8 @@ namespace LordAshes
             AssetDb.DbEntry databaseData = (AssetDb.DbEntry)inputs[1];
             Dictionary<string, string> tags = (Dictionary<string, string>)inputs[2];
             if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Post Spawn Handler: Processing Aura "+creatureData.CreatureId); }
-            CreatureBoardAsset asset = null;
-            CreaturePresenter.TryGetAsset(creatureData.CreatureId, out asset);
-            if (asset != null)
-            {
-                // Attach aura to selected mini
-                GameObject target = Utility.GetAssetLoader(LocalClient.SelectedCreatureId);
-                GameObject aura = Utility.GetAssetLoader(creatureData.CreatureId);
-                if (target != null && aura != null)
-                {
-                    aura.transform.position = target.transform.position;
-                    aura.transform.rotation = target.transform.rotation;
-                    aura.transform.SetParent(target.transform);
-                }
-                else
-                {
-                    SystemMessage.DisplayInfoText("Unable To Attach Aura");
-                }
-            }
+            // Request aura binding to target
+            AssetDataPlugin.SetInfo(LocalClient.SelectedCreatureId.ToString(), CustomAssetsLibraryPluginIntegratedExtention.Guid + ".aura", creatureData.CreatureId.ToString() + "@" + DateTime.UtcNow.ToString(), false);
             yield return new WaitForSeconds(0.1f);
         }
 
@@ -155,10 +139,12 @@ namespace LordAshes
 
         public IEnumerator PostSpawnFilterHandler(object[] inputs)
         {
-            CreatureDataV2 creatureData = (CreatureDataV2)inputs[0];
+            CreatureDataV2 filterData = (CreatureDataV2)inputs[0];
             AssetDb.DbEntry databaseData = (AssetDb.DbEntry)inputs[1];
             Dictionary<string, string> tags = (Dictionary<string, string>)inputs[2];
-            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Post Spawn Handler: Processing Effect " + creatureData.CreatureId); }
+            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Post Spawn Handler: Processing Filter " + filterData.CreatureId); }
+            // Request filter binding to target
+            AssetDataPlugin.SetInfo(CreatureGuid.Empty.ToString(), CustomAssetsLibraryPluginIntegratedExtention.Guid + ".filter", filterData.CreatureId.ToString(), false);
             yield return new WaitForSeconds(0.1f);
         }
 

@@ -1,10 +1,16 @@
 ﻿using BepInEx;
+using Bounce.TaleSpire.AssetManagement;
 using Bounce.Unmanaged;
 using DataModel;
+using LegacyDataModel.Beta;
+using LegacyDataModel.V4;
 using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace LordAshes
@@ -18,7 +24,7 @@ namespace LordAshes
 
             public static void SpawnPrevent()
             {
-                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Preventing Asset Spawn"); }
+                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Helpers: Preventing Asset Spawn"); }
                 if (SingletonBehaviour<BoardToolManager>.HasInstance)
                 {
                     SingletonBehaviour<BoardToolManager>.Instance.SwitchToTool<DefaultBoardTool>(BoardToolManager.Type.Normal);
@@ -27,83 +33,88 @@ namespace LordAshes
 
             public static CreatureGuid SpawnCreature(CreatureDataV2 creatureData)
             {
-                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Creating Mini Of Type " + creatureData.BoardAssetIds[0] + " Which " + (creatureData.ExplicitlyHidden ? "Is" : "Is Not") + " Hidden"); }
+                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Helpers: Creating Mini Of Type " + creatureData.BoardAssetIds[0] + " Which " + (creatureData.ExplicitlyHidden ? "Is" : "Is Not") + " Hidden"); }
 
                 if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra)
                 {
-                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Creature Spawn: Alias = " + creatureData.Alias);
-                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Creature Spawn: CreatureId = " + creatureData.CreatureId);
-                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Creature Spawn: BoardAssetIds = " + String.Join(",", creatureData.BoardAssetIds) + " (Active " + Convert.ToString(creatureData.GetActiveBoardAssetId()) + ")");
-                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Creature Spawn: ActiveMorphIndex = " + Convert.ToString(creatureData.ActiveMorphIndex));
-                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Creature Spawn: ExplicitlyHidden = " + creatureData.ExplicitlyHidden);
-                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Creature Spawn: Flying = " + creatureData.Flying);
-                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Creature Spawn: Link = " + creatureData.Link);
-                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Creature Spawn: Position = " + creatureData.Position.x + "," + creatureData.Position.y + "," + creatureData.Position.z);
-                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Creature Spawn: Rotation = " + creatureData.Rotation.ToEulerDegrees().x + "," + creatureData.Rotation.ToEulerDegrees().y + "," + creatureData.Rotation.ToEulerDegrees().z);
-                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Creature Spawn: UniqueId = " + creatureData.UniqueId);
+                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Helpers: Creature Spawn: Alias = " + creatureData.Alias);
+                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Helpers: Creature Spawn: CreatureId = " + creatureData.CreatureId);
+                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Helpers: Creature Spawn: BoardAssetIds = " + String.Join(",", creatureData.BoardAssetIds) + " (Active " + Convert.ToString(creatureData.GetActiveBoardAssetId()) + ")");
+                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Helpers: Creature Spawn: ActiveMorphIndex = " + Convert.ToString(creatureData.ActiveMorphIndex));
+                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Helpers: Creature Spawn: ExplicitlyHidden = " + creatureData.ExplicitlyHidden);
+                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Helpers: Creature Spawn: Flying = " + creatureData.Flying);
+                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Helpers: Creature Spawn: Link = " + creatureData.Link);
+                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Helpers: Creature Spawn: Position = " + creatureData.Position.x + "," + creatureData.Position.y + "," + creatureData.Position.z);
+                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Helpers: Creature Spawn: Rotation = " + creatureData.Rotation.ToEulerDegrees().x + "," + creatureData.Rotation.ToEulerDegrees().y + "," + creatureData.Rotation.ToEulerDegrees().z);
+                    Debug.Log("Custom Assets Library Plugin Integrated Extension: Helpers: Creature Spawn: UniqueId = " + creatureData.UniqueId);
                 }
 
-                Quaternion q = Quaternion.Euler(new Vector3(creatureData.Rotation.x.ToDegrees(), creatureData.Rotation.y.ToDegrees(), creatureData.Rotation.z.ToDegrees()));
+                float3 position = new Unity.Mathematics.float3(creatureData.Position.x, creatureData.Position.y, creatureData.Position.z);
+                Quaternion rotation = Quaternion.Euler(new Vector3(creatureData.Rotation.x.ToDegrees(), creatureData.Rotation.y.ToDegrees(), creatureData.Rotation.z.ToDegrees()));
 
-                Debug.Log("Custom Assets Library Plugin Integrated Extension: SpawnResult=" + Convert.ToString(CreatureManager.TryCreateAndAddNewCreature(creatureData, creatureData.Position, new Unity.Mathematics.quaternion(q.x, q.y, q.z, q.w), creatureData.Flying, creatureData.ExplicitlyHidden, false)));
+                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Helpers: Executing Spawn"); }
 
-                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Registering mini for saving"); }
-                BuildingBoardTool.RecordInBuildHistory(creatureData.GetActiveBoardAssetId().Value);
-                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Spawn complete"); }
+                if(spawnCreature==null)
+                {
+                    foreach (MethodInfo mi in typeof(CreatureManager).GetRuntimeMethods().ToArray())
+                    {
+                        if (mi.Name == "AddOrRequestAddCreature") { spawnCreature = mi; break; }
+                    }
+                }
+
+                SpawnCreatureResult spawnResult = (SpawnCreatureResult)spawnCreature.Invoke(null, new object[] { creatureData, new PlayerGuid[] { LocalPlayer.Id }, true, true });
+
+                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Helpers: Spawn Result = "+spawnResult.ToString()); }
+
+                if (spawnResult == SpawnCreatureResult.Success)
+                {
+                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Adding To History"); }
+
+                    BuildingBoardTool.RecordInBuildHistory(creatureData.GetActiveBoardAssetId().Value);
+                }
 
                 return creatureData.CreatureId;
             }
 
-            public static void SpawnCreatureByNGuid(NGuid nguid)
+            public static void SpawnCreatureByNGuid(NGuid nguid, string alias = "")
             {
-                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Pre Spawn Handler: Spawning Creature By NGuid"); }
+                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Helpers: Spawning Creature By NGuid"); }
                 CreatureBoardAsset asset;
                 CreaturePresenter.TryGetAsset(LocalClient.SelectedCreatureId, out asset);
                 Vector3 spawnPos = (asset != null) ? asset.CorrectPos : Vector3.zero;
                 Quaternion spawnRot = (asset != null) ? asset.CorrectRotation : Quaternion.Euler(Vector3.zero);
-                Helpers.SpawnCreature(new CreatureDataV2()
-                {
-                    CreatureId = new CreatureGuid(new Bounce.Unmanaged.NGuid(System.Guid.NewGuid())),
-                    BoardAssetIds = new BoardAssetGuid[] { new BoardAssetGuid(nguid) },
-                    Position = spawnPos,
-                    Rotation = Bounce.Mathematics.bam3.FromEulerDegrees(spawnRot.eulerAngles),
-                    ExplicitlyHidden = false,
-                    Flying = false
-                });
+                CreatureDataV2 creatureData = new CreatureDataV2(new BoardAssetGuid(nguid));
+                creatureData.Alias = alias;
+                creatureData.CreatureId = new CreatureGuid(new Bounce.Unmanaged.NGuid(System.Guid.NewGuid()));
+                creatureData.PackedScales = new CreatureDataV2.ScalesPack(0.1875f);
+                creatureData.Position = spawnPos;
+                creatureData.Rotation = Bounce.Mathematics.bam3.FromEulerDegrees(spawnRot.eulerAngles);
+                creatureData.ExplicitlyHidden = false;
+                creatureData.Flying = false;
+                Helpers.SpawnCreature(creatureData);
             }
 
             public static IEnumerator ShowHide(CreatureBoardAsset __instance, float pause = 0.1f)
             {
-                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Hide/Show Update"); }
+                if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Helpers: Hide/Show Update"); }
                 yield return new WaitForSeconds(pause);
                 if (__instance != null)
                 {
                     bool visible = true;
-                    ShaderStateRef shader = default(ShaderStateRef);
-                    __instance.TryGetShaderState(out shader);
-                    if (__instance.IsExplicitlyHidden) { visible = false; }
-                    if (shader.State.IsCreatureHiddenByVolume) { visible = false; }
                     if (!__instance.IsVisible) { visible = false; }
-                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Show = " + visible+" (Hide: "+ __instance.IsExplicitlyHidden+", HideVolume: "+ shader.State.IsCreatureHiddenByVolume+", HeightBar: "+!__instance.IsVisible+")"); }
-                    MeshRenderer[] mr = __instance.GetComponentsInChildren<MeshRenderer>();
-                    foreach (MeshRenderer renderer in mr)
+                    if (__instance.IsExplicitlyHidden) { visible = false; }
+                    if (__instance.ShaderStateRef.State.IsCreatureHiddenByVolume) { visible = false; }
+                    if (!__instance.ShaderStateRef.State.InActiveLineOfSight && !LocalClient.IsInGmMode) { visible = false; }
+                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: "+Utility.GetCreatureName(__instance.Name)+" Show = " + visible+" (Hide: "+ __instance.IsExplicitlyHidden+", HideVolume: "+ __instance.ShaderStateRef.State.IsCreatureHiddenByVolume+", HeightBar: "+!__instance.IsVisible+", LOS: "+ __instance.ShaderStateRef.State.InActiveLineOfSight+")"); }
+                    Renderer[] ren = __instance.GetComponentsInChildren<Renderer>();
+                    foreach (Renderer renderer in ren)
                     {
                         if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Creature '" + __instance.Name + "' has " + renderer.GetType().ToString() + " '" + renderer.name + "' material '" + renderer.material.name + "' shader '" + renderer.material.shader.name + "'"); }
-                        // if (!renderer.material.shader.name.StartsWith("Taleweaver"))
-                        // {
+                        if (!renderer.material.shader.name.StartsWith("Taleweaver"))
+                        {
                             if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Setting Creature '" + __instance.Name + "' has " + renderer.GetType().ToString() + " '" + renderer.name + "' Enabled = " + visible); }
                             renderer.enabled = visible;
-                        // }
-                    }
-                    SkinnedMeshRenderer[] smr = __instance.GetComponentsInChildren<SkinnedMeshRenderer>();
-                    foreach (SkinnedMeshRenderer renderer in smr)
-                    {
-                        if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Creature '" + __instance.Name + "' has " + renderer.GetType().ToString() + " '" + renderer.name + "' material '" + renderer.material.name + "' shader '" + renderer.material.shader.name + "'"); }
-                        // if (!renderer.material.shader.name.StartsWith("Taleweaver"))
-                        // {
-                            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Setting Creature '" + __instance.Name + "' has " + renderer.GetType().ToString() + " '" + renderer.name + "' Enabled = " + visible); }
-                            renderer.enabled = visible;
-                        //}
+                        }
                     }
                 }
                 else
@@ -114,12 +125,12 @@ namespace LordAshes
 
             public static string ModifyKindBasedOnModifier(string kind)
             {
-                if (Input.GetKey(KeyCode.LeftShift)) { return "Creature"; }
+                if (Input.GetKey(KeyCode.RightControl)) { return "Creature"; }
                 if (Input.GetKey(KeyCode.RightShift)) { return "Transform"; }
-                if (Input.GetKey(KeyCode.LeftControl)) { return "Effect"; }
-                if (Input.GetKey(KeyCode.RightControl)) { return "Aura"; }
-                if (Input.GetKey(KeyCode.LeftAlt)) { return "Audio"; }
-                if (Input.GetKey(KeyCode.RightAlt)) { return "Filter"; }
+                if (Input.GetKey(KeyCode.RightAlt)) { return "Audio"; }
+                if (Input.GetKey(KeyCode.LeftShift)) { return "Effect"; }
+                if (Input.GetKey(KeyCode.LeftControl)) { return "Aura"; }
+                if (Input.GetKey(KeyCode.LeftAlt)) { return "Filter"; }
                 return kind;
             }
 

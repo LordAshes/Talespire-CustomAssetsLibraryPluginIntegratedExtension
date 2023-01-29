@@ -95,24 +95,29 @@ namespace LordAshes
             /// <returns>BaseLoader Game Object</returns>
             public static GameObject GetBaseLoader(CreatureGuid cid)
             {
-                CreatureBoardAsset asset = null;
-                CreaturePresenter.TryGetAsset(cid, out asset);
-                if (asset != null)
+                try
                 {
-                    CreatureBase _base = null;
-                    StartWith<CreatureBase>(asset, "_base", ref _base);
-                    Transform baseLoader = null;
-                    Traverse(_base.transform, "BaseLoader", ref baseLoader);
-                    if (baseLoader != null)
+                    CreatureBoardAsset asset = null;
+                    CreaturePresenter.TryGetAsset(cid, out asset);
+                    if (asset != null)
                     {
-                        return baseLoader.GetChild(0).gameObject;
+                        Transform baseLoader = null;
+                        Traverse(asset.transform, "BaseLoader", 0, 10, ref baseLoader);
+                        if (baseLoader != null)
+                        {
+                            return baseLoader.GetChild(0).gameObject;
+                        }
+                        else
+                        {
+                            return null;
+                        }
                     }
-                    else
-                    {
-                        return null;
-                    }
+                    return null;
                 }
-                return null;
+                catch
+                {
+                    return null;
+                }
             }
 
             /// <summary>
@@ -122,48 +127,77 @@ namespace LordAshes
             /// <returns>AssetLoader Game Object</returns>
             public static GameObject GetAssetLoader(CreatureGuid cid)
             {
-                CreatureBoardAsset asset = null;
-                CreaturePresenter.TryGetAsset(cid, out asset);
-                if (asset != null)
+                try
                 {
-                    Transform _creatureRoot = null;
-                    StartWith(asset, "_creatureRoot", ref _creatureRoot);
-                    Transform assetLoader = null;
-                    Traverse(_creatureRoot, "AssetLoader", ref assetLoader);
-                    if (assetLoader != null)
+                    CreatureBoardAsset asset = null;
+                    CreaturePresenter.TryGetAsset(cid, out asset);
+                    if (asset != null)
                     {
-                        return assetLoader.GetChild(0).gameObject;
+                        Transform assetLoader = null;
+                        Traverse(asset.transform, "AssetLoader", 0, 10, ref assetLoader);
+                        if (assetLoader != null)
+                        {
+                            if (assetLoader.childCount > 0)
+                            {
+                                return assetLoader.GetChild(0).gameObject;
+                            }
+                            else
+                            {
+                                return null;
+                            }
+                        }
+                        else
+                        {
+                            return null;
+                        }
                     }
-                    else
-                    {
-                        return null;
-                    }
+                    return null;
                 }
-                return null;
-            }
-
-            public static void StartWith<T>(CreatureBoardAsset asset, string seek, ref T match)
-            {
-                Type type = typeof(CreatureBoardAsset);
-                match = default(T);
-                foreach (FieldInfo fi in type.GetRuntimeFields())
+                catch
                 {
-                    if (fi.Name == seek)
-                    {
-                        match = (T)fi.GetValue(asset);
-                        break;
-                    }
+                    return null;
                 }
             }
 
-            public static void Traverse(Transform root, string seek, ref Transform match)
+            public static void Traverse(Transform root, string seek, int depth, int depthMax, ref Transform match)
             {
-                // Debug.Log("Seeking Child Named '" + seek + "'. Found '" + root.name + "'");
-                if (match != null) { return; }
-                if (root.name == seek) { match = root; return; }
-                foreach (Transform child in root.Children())
+                try
                 {
-                    Traverse(child, seek, ref match);
+                    if (match != null) { return; }
+                    if (root.name == seek) { match = root; return; }
+                    foreach (Transform child in root.Children())
+                    {
+                        if (depth < depthMax)
+                        {
+                            Traverse(child, seek, depth + 1, depthMax, ref match);
+                        }
+                    }
+                }
+                catch
+                {
+                }
+            }
+
+            public static void DeleteChildrenCustomContent(Transform root, string seek, int depth, int depthMax)
+            {
+                try
+                {
+                    if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Deleting Children Custom Objects: Found '" + root.name + " ("+root.gameObject.name+")', Seeking '"+seek+"', Depth="+depth); }
+                    if (root.name.StartsWith(seek) || root.gameObject.name.StartsWith(seek)) 
+                    {
+                        if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Deleting Game Object "+ root.name+" ("+root.gameObject.name+")"); }
+                        GameObject.Destroy(root.gameObject);
+                    }
+                    foreach (Transform child in root.Children())
+                    {
+                        if (depth < depthMax)
+                        {
+                            DeleteChildrenCustomContent(child, seek, depth + 1, depthMax);
+                        }
+                    }
+                }
+                catch
+                {
                 }
             }
 

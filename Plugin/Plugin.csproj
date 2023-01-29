@@ -40,6 +40,9 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\AppData\Roaming\r2modmanPlus-local\TaleSpire\profiles\Modded\BepInEx\core\0Harmony.dll</HintPath>
     </Reference>
+    <Reference Include="AssetDataPlugin">
+      <HintPath>..\..\TaleSpireAssetDataPlugin\Plugin\bin\Debug\AssetDataPlugin.dll</HintPath>
+    </Reference>
     <Reference Include="BepInEx">
       <HintPath>D:\moddingtalespire-2.3.0\bepinexbin\BepInEx\core\BepInEx.dll</HintPath>
     </Reference>
@@ -96,6 +99,10 @@
     <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.13.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
+    <Reference Include="RadialUI, Version=2.2.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\AppData\Roaming\r2modmanPlus-local\TaleSpire\cache\HolloFox_TS-RadialUIPlugin\2.2.3\RadialUI.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
@@ -146,7 +153,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AssetDataPluginSoftDependency.cs" />
     <Compile Include="AssetInfo.cs" />
     <Compile Include="Helpers.cs" />
     <Compile Include="Index.cs" />

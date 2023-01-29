@@ -2,9 +2,7 @@
 using BepInEx.Configuration;
 using Bounce.Unmanaged;
 using HarmonyLib;
-using Newtonsoft.Json;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -15,13 +13,14 @@ namespace LordAshes
 {
     [BepInPlugin(Guid, Name, Version)]
     [BepInDependency(LordAshes.FileAccessPlugin.Guid, BepInDependency.DependencyFlags.HardDependency)]
-    [BepInDependency("org.lordashes.plugins.assetdata", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(LordAshes.AssetDataPlugin.Guid, BepInDependency.DependencyFlags.HardDependency)]
+    [BepInDependency(RadialUI.RadialUIPlugin.Guid, BepInDependency.DependencyFlags.HardDependency)]
     public partial class CustomAssetsLibraryPluginIntegratedExtention : BaseUnityPlugin
     {
         // Plugin info
         public const string Name = "Custom Assets Library Plugin Integrated Extension";
         public const string Guid = "org.lordashes.plugins.customassetslibraryintegratedextension";
-        public const string Version = "2.0.0.0";
+        public const string Version = "2.0.0.1";
 
         // Public Enum
         public enum DiagnosticMode
@@ -42,7 +41,6 @@ namespace LordAshes
         public class KeyboardHandler
         {
             public KeyboardShortcut trigger { get; set; }
-            public bool alwaysLocal { get; set; } = false;
             public string handlerMethod { get; set; }
             public object handlerParameter { get; set; }
         }
@@ -51,6 +49,7 @@ namespace LordAshes
         private ConfigEntry<DiagnosticMode> diagnosticMode { get; set; }
 
         public static ConfigEntry<float> showHideUpdateDelay { get; set; }
+        public static ConfigEntry<string> animationNames { get; set; }
 
         public static CustomAssetsLibraryPluginIntegratedExtention _self = null;
 
@@ -79,9 +78,15 @@ namespace LordAshes
             {"Play Audio", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.Alpha9, KeyCode.LeftControl), handlerMethod = "Audio", handlerParameter = -1 } },
             {"Stop All", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.Alpha0, KeyCode.LeftControl), handlerMethod = "Stop", handlerParameter = -1 } },
             {"Stop All (Alternate)", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.Alpha0, KeyCode.LeftAlt), handlerMethod = "Stop", handlerParameter = -1 } },
-            {"Paste Multi-Slab", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.S, KeyCode.LeftControl), handlerMethod = "BuildSlabs", handlerParameter = -1, alwaysLocal = true } },
-            {"Analyze Game Object", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.A, KeyCode.RightControl), handlerMethod = "Analyze", handlerParameter = -1, alwaysLocal = true } },
         };
+
+        public static Dictionary<string, KeyboardHandler> keyboardHandlersForLocalActions = new Dictionary<string, KeyboardHandler>()
+        {
+            {"Paste Multi-Slab", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.S, KeyCode.LeftControl), handlerMethod = "BuildSlabs", handlerParameter = -1} },
+            {"Analyze Game Object", new KeyboardHandler() {trigger = new KeyboardShortcut(KeyCode.A, KeyCode.RightControl), handlerMethod = "Analyze", handlerParameter = -1} },
+        };
+
+        private static MethodInfo spawnCreature = null;
 
         void Awake()
         {
@@ -89,9 +94,25 @@ namespace LordAshes
 
             diagnosticMode = Config.Bind("Troubleshooting", "Diagnostic Mode", DiagnosticMode.high);
 
-            UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: "+this.GetType().AssemblyQualifiedName+" Active. Diagnostic Level = "+diagnosticMode.Value.ToString());
+            Debug.Log("Custom Assets Library Plugin Integrated Extension: "+this.GetType().AssemblyQualifiedName+" Active. Diagnostic Level = "+diagnosticMode.Value.ToString());
 
             showHideUpdateDelay = Config.Bind("Settings", "Delay After Spawn To Update Non-TS Shader Content", 3.0f);
+
+            animationNames = Config.Bind("Settings", "Animation Names", "Idle,Ready,Melee,Range,Dead,Magic");
+
+            RadialUI.RadialUIPlugin.AddCustomButtonOnCharacter(CustomAssetsLibraryPluginIntegratedExtention.Guid + ".RemoveAura",
+                new MapMenu.ItemArgs()
+                {
+                    Action = (a,b)=> 
+                    {
+                        if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Clearing Aura On "+ Convert.ToString(LocalClient.SelectedCreatureId)); }
+                        AssetDataPlugin.ClearInfo(LocalClient.SelectedCreatureId.ToString(),CustomAssetsLibraryPluginIntegratedExtention.Guid+".aura"); 
+                    },
+                    FadeName = true,
+                    CloseMenuOnActivate = true,
+                    Icon = FileAccessPlugin.Image.LoadSprite("RemoveAura.png"),
+                    Title = "Remove Aura"
+                });
 
             for (int t=0; t<keyboardHandlers.Count; t++)
             {
@@ -103,16 +124,39 @@ namespace LordAshes
             {
                 harmony.PatchAll();
                 pluginOk = true;
+                foreach (string suffix in new string[] { "animate", "audio", "blendshape", "stop" })
+                {
+                    AssetDataPlugin.Subscribe(CustomAssetsLibraryPluginIntegratedExtention.Guid + "." + suffix, RemoteRequestRouter, AssetDataPlugin.Backlog.Checker.CheckSourceAsCreature);
+                }
+                foreach (string suffix in new string[] { "aura" })
+                {
+                    AssetDataPlugin.Subscribe(CustomAssetsLibraryPluginIntegratedExtention.Guid + "." + suffix, RemoteRequestRouter, AssetDataPlugin.Backlog.Checker.CheckSourceAndValueAsCreature);
+                }
+                foreach (string suffix in new string[] { "filter" })
+                {
+                    AssetDataPlugin.Subscribe(CustomAssetsLibraryPluginIntegratedExtention.Guid + "." + suffix, RemoteRequestRouter, (dc) => 
+                    {
+                        if (dc.action!=AssetDataPlugin.ChangeAction.remove)
+                        {
+                            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Post Spawn Handler: Checking Filter " + dc.value); }
+                            CreatureBoardAsset verifyAsset = null;
+                            CreaturePresenter.TryGetAsset(new CreatureGuid(dc.value.ToString()), out verifyAsset);
+                            if (verifyAsset != null) { return true; } else { return false; }
+                        }
+                        else
+                        {
+                            if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.high) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Post Spawn Handler: Filter Removal Requires No Check"); }
+                            return true;
+                        }
+                    });
+                }
+                Utility.PostOnMainPage(this.GetType());
             }
             catch (Exception)
             {
                 UnityEngine.Debug.Log("Custom Assets Library Plugin Integrated Extension: Plugin seems broken possibly due to BR Update. Be patient while we fix it.");
                 harmony.UnpatchSelf();
             }
-
-            AssetDataPluginSoftDependency.Initialize();
-
-            Utility.PostOnMainPage(this.GetType());
         }
 
         void Update()
@@ -122,7 +166,6 @@ namespace LordAshes
                 if (Utility.isBoardLoaded())
                 {
                     // Board is loaded
-                    // if (CustomAssetsLibrary.Patches.AssetDbOnSetupInternalsPatch.HasSetup)
                     {
                         if (Patches.spawnList.Count > 0)
                         {
@@ -171,24 +214,25 @@ namespace LordAshes
                     {
                         if (Utility.StrictKeyCheck(handler.trigger))
                         {
-                            if (AssetDataPluginSoftDependency.SetInfo != null && !handler.alwaysLocal)
-                            {
-                                // Remote request for functionality
-                                Debug.Log("Custom Assets Library Plugin Integrated Extension: (Remote Mode) User Requested Setting Of " + CustomAssetsLibraryPluginIntegratedExtention.Guid + "." + handler.handlerMethod + " With Parameter " + Convert.ToString(handler.handlerParameter));
-                                AssetDataPluginSoftDependency.SetInfo.Invoke(null, new object[] { LocalClient.SelectedCreatureId.ToString(), CustomAssetsLibraryPluginIntegratedExtention.Guid + "." + handler.handlerMethod, Convert.ToString(handler.handlerParameter) + "@" + DateTime.UtcNow.ToString(), false });
-                            }
-                            else
-                            {
-                                // Local request for functionality
-                                Debug.Log("Custom Assets Library Plugin Integrated Extension: (Local Mode Only) User Requested Execution Of " + handler.handlerMethod + " With Parameter " + Convert.ToString(handler.handlerParameter));
-                                typeof(CustomAssetsLibraryPluginIntegratedExtention.RequestHandler).GetMethod(handler.handlerMethod).Invoke(null, new object[] { LocalClient.SelectedCreatureId, handler.handlerParameter });
-                            }
+                            // Remote request for functionality
+                            Debug.Log("Custom Assets Library Plugin Integrated Extension: (Remote Mode) User Requested Setting Of " + CustomAssetsLibraryPluginIntegratedExtention.Guid + "." + handler.handlerMethod + " With Parameter " + Convert.ToString(handler.handlerParameter));
+                            AssetDataPlugin.SetInfo(LocalClient.SelectedCreatureId.ToString(), CustomAssetsLibraryPluginIntegratedExtention.Guid + "." + handler.handlerMethod, Convert.ToString(handler.handlerParameter) + "@" + DateTime.UtcNow.ToString());
+                        }
+                    }
+                    foreach (KeyboardHandler handler in keyboardHandlersForLocalActions.Values)
+                    {
+                        if (Utility.StrictKeyCheck(handler.trigger))
+                        {
+                            // Local request for functionality
+                            Debug.Log("Custom Assets Library Plugin Integrated Extension: (Local Mode) User Requested Setting Of " + CustomAssetsLibraryPluginIntegratedExtention.Guid + "." + handler.handlerMethod + " With Parameter " + Convert.ToString(handler.handlerParameter));
+                            MethodInfo method = typeof(RequestHandler).GetMethod(handler.handlerMethod);
+                            method.Invoke(null, new object[] { LocalClient.SelectedCreatureId, Convert.ToString(handler.handlerParameter) + "@" + DateTime.UtcNow.ToString() });
                         }
                     }
                 }
                 if (CustomAssetsLibraryPluginIntegratedExtention.Diagnostics() >= DiagnosticMode.ultra)
                 {
-                    if (Patches.spawnList.Count > 0) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Backlog Entries = " + Patches.spawnList.Count+" @ Try "+tryCount); }
+                    if (Patches.spawnList.Count > 0) { Debug.Log("Custom Assets Library Plugin Integrated Extension: Spawn Entries = " + Patches.spawnList.Count+" @ Try "+tryCount); }
                 }
             }
         }
